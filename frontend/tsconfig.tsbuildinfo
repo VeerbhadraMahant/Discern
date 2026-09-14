@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/components/annotatedframe.tsx","./src/components/pipelinetrace.tsx","./src/components/scenesummary.tsx","./src/components/toolsused.tsx","./src/components/uploadpanel.tsx","./src/components/violationslist.tsx","./src/components/icons.tsx","./src/lib/api.ts","./src/lib/types.ts"],"version":"5.9.3"}
