@@ -1,0 +1,12 @@
+claude.md
+
+# backend
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.env
+*.pt
+
+# frontend
+frontend/node_modules/
+frontend/dist/
