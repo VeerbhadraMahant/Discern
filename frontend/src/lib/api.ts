@@ -1,6 +1,9 @@
 import type { AnalyzeResponse } from "./types";
 
-const API_BASE = ""; // Vite proxies /api to http://localhost:8000 in dev
+// In dev, Vite proxies /api to http://localhost:8000 (see vite.config.ts), so
+// API_BASE stays empty. In production (e.g. Vercel), there is no such proxy -
+// set VITE_API_URL to the deployed backend's origin (no trailing slash).
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
 
 export async function checkHealth(): Promise<boolean> {
   try {
