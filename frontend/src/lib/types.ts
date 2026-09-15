@@ -35,6 +35,8 @@ export interface Violation {
   severity: "critical" | "warning" | "info";
   description: string;
   related_detection_ids: string[];
+  oshaCode?: string;
+  recommendation?: string;
 }
 
 export interface PipelineStep {
@@ -51,4 +53,52 @@ export interface AnalyzeResponse {
   detections: Detection[];
   violations: Violation[];
   annotated_image: string;
+  raw_image?: string;
+  restored_image?: string;
 }
+
+export interface ScenarioPreset {
+  id: string;
+  title: string;
+  site: string;
+  camera: string;
+  condition: string;
+  tag: string;
+  description: string;
+  rawImageUrl: string;
+  restoredImageUrl: string;
+  annotatedImageUrl: string;
+  analysis: AnalyzeResponse;
+}
+
+export interface CameraFeed {
+  id: string;
+  name: string;
+  location: string;
+  zone: string;
+  status: "active" | "alert" | "degraded";
+  fps: number;
+  resolution: string;
+  lux: number;
+  weatherCondition: string;
+  violationsCount: number;
+  lastChecked: string;
+  presetId: string;
+}
+
+export interface AuditRecord {
+  id: string;
+  timestamp: string;
+  cameraId: string;
+  cameraName: string;
+  zone: string;
+  weather: string;
+  lighting: string;
+  violationType: string;
+  severity: "critical" | "warning" | "info";
+  description: string;
+  restorationApplied: string;
+  status: "open" | "acknowledged" | "resolved";
+}
+
+export type AppView = "landing" | "studio" | "multicam" | "audit";
