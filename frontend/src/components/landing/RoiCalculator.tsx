@@ -46,7 +46,7 @@ export default function RoiCalculator({ onLaunch }: { onLaunch: () => void }) {
                 onChange={(e) => setCameraCount(Number(e.target.value))}
                 className="w-full h-2 bg-[#050518]/20 appearance-none cursor-pointer accent-[#0000f2]"
               />
-              <div className="flex justify-between text-[10px] text-[#707090] font-bold mt-1">
+              <div className="flex justify-between text-[11px] text-[#5c5c78] font-bold mt-1">
                 <span>4 cams</span>
                 <span>60 cams</span>
                 <span>120 cams</span>
@@ -67,7 +67,7 @@ export default function RoiCalculator({ onLaunch }: { onLaunch: () => void }) {
                 onChange={(e) => setShiftHours(Number(e.target.value))}
                 className="w-full h-2 bg-[#050518]/20 appearance-none cursor-pointer accent-[#0000f2]"
               />
-              <div className="flex justify-between text-[10px] text-[#707090] font-bold mt-1">
+              <div className="flex justify-between text-[11px] text-[#5c5c78] font-bold mt-1">
                 <span>8h (Single Shift)</span>
                 <span>16h (Dawn/Dusk)</span>
                 <span>24h (Non-stop)</span>
@@ -88,7 +88,7 @@ export default function RoiCalculator({ onLaunch }: { onLaunch: () => void }) {
                 onChange={(e) => setAdverseWeatherDays(Number(e.target.value))}
                 className="w-full h-2 bg-[#050518]/20 appearance-none cursor-pointer accent-[#0000f2]"
               />
-              <div className="flex justify-between text-[10px] text-[#707090] font-bold mt-1">
+              <div className="flex justify-between text-[11px] text-[#5c5c78] font-bold mt-1">
                 <span>10 days (Mild)</span>
                 <span>85 days (Average)</span>
                 <span>200 days (Harsh)</span>
@@ -98,27 +98,27 @@ export default function RoiCalculator({ onLaunch }: { onLaunch: () => void }) {
 
           {/* Results Summary Card */}
           <div className="lg:col-span-6 border-2 border-[#0000f2] bg-white p-7 shadow-lg space-y-6 text-[#050518]">
-            <span className="text-[11px] font-black uppercase tracking-wider text-[#707090] block">
+            <span className="text-[11px] font-black uppercase tracking-wider text-[#5c5c78] block">
               // ANNUAL_PROJECTED_PROTECTION
             </span>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="bg-[#f4f4f7] p-4 border border-[#050518]/15">
-                <span className="text-[10px] text-[#707090] font-bold uppercase block">Recovered Blind Hours</span>
+                <span className="text-[11px] text-[#5c5c78] font-bold uppercase block">Recovered Blind Hours</span>
                 <span className="text-2xl sm:text-3xl font-black text-[#050518] mt-1 block">
                   {blindSpotHoursYearly.toLocaleString()} <span className="text-xs font-normal">hrs</span>
                 </span>
-                <span className="text-[10px] text-[#008844] font-black mt-1 flex items-center gap-1">
+                <span className="text-[11px] text-[#008844] font-black mt-1 flex items-center gap-1">
                   <TrendingDown className="h-3.5 w-3.5" /> Recovered by CV
                 </span>
               </div>
 
               <div className="bg-[#f4f4f7] p-4 border border-[#050518]/15">
-                <span className="text-[10px] text-[#707090] font-bold uppercase block">Hazards Prevented</span>
+                <span className="text-[11px] text-[#5c5c78] font-bold uppercase block">Hazards Prevented</span>
                 <span className="text-2xl sm:text-3xl font-black text-[#ff2222] mt-1 block">
                   ~{estimatedPreventedHazards} <span className="text-xs font-normal">events</span>
                 </span>
-                <span className="text-[10px] text-[#3a3a52] font-semibold mt-1 block">
+                <span className="text-[11px] text-[#3a3a52] font-semibold mt-1 block">
                   PPE & Zone Breaches
                 </span>
               </div>
@@ -126,13 +126,13 @@ export default function RoiCalculator({ onLaunch }: { onLaunch: () => void }) {
 
             <div className="bg-[#0000f2]/10 border-2 border-[#0000f2] p-4 flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-bold uppercase text-[#3a3a52] block">Incident Mitigation</span>
+                <span className="text-[11px] font-bold uppercase text-[#3a3a52] block">Incident Mitigation</span>
                 <span className="text-xl sm:text-2xl font-black text-[#0000f2]">
                   ${estimatedInsuranceSavings} <span className="text-xs font-normal text-[#050518]">/ yr</span>
                 </span>
               </div>
               <div className="text-right">
-                <span className="text-[10px] font-bold uppercase text-[#707090] block">GPU Savings</span>
+                <span className="text-[11px] font-bold uppercase text-[#5c5c78] block">GPU Savings</span>
                 <span className="text-sm font-black text-[#050518]">{computeSavingsPercent}% Bypassed</span>
               </div>
             </div>

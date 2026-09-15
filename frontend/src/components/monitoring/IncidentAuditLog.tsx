@@ -123,7 +123,7 @@ export default function IncidentAuditLog({ onSelectAuditPreset }: Props) {
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
-              <tr className="border-b border-hermes-ink/20 bg-hermes-paper text-[10px] font-bold uppercase tracking-wider text-hermes-muted">
+              <tr className="border-b border-hermes-ink/20 bg-hermes-paper text-[11px] font-bold uppercase tracking-wider text-hermes-muted">
                 <th className="py-3 px-4">RECORD_ID</th>
                 <th className="py-3 px-4">TIMESTAMP</th>
                 <th className="py-3 px-4">CAMERA / ZONE</th>
@@ -145,14 +145,14 @@ export default function IncidentAuditLog({ onSelectAuditPreset }: Props) {
                   </td>
                   <td className="py-3 px-4">
                     <span className="font-bold text-hermes-ink block">{log.cameraName}</span>
-                    <span className="text-[10px] text-hermes-muted">{log.zone}</span>
+                    <span className="text-[11px] text-hermes-muted">{log.zone}</span>
                   </td>
                   <td className="py-3 px-4 text-hermes-charcoal">
                     <span className="font-bold text-hermes-ink">{log.weather}</span>
-                    <span className="text-[10px] text-hermes-muted block">{log.lighting}</span>
+                    <span className="text-[11px] text-hermes-muted block">{log.lighting}</span>
                   </td>
                   <td className="py-3 px-4">
-                    <span className="bg-hermes-paper border border-hermes-ink/15 px-2 py-0.5 text-[10px] font-bold block truncate max-w-[150px]">
+                    <span className="bg-hermes-paper border border-hermes-ink/15 px-2 py-0.5 text-[11px] font-bold block truncate max-w-[150px]">
                       {log.restorationApplied}
                     </span>
                   </td>
@@ -164,7 +164,7 @@ export default function IncidentAuditLog({ onSelectAuditPreset }: Props) {
                   </td>
                   <td className="py-3 px-4 text-center">
                     <span
-                      className={`px-2 py-0.5 text-[10px] font-bold uppercase ${
+                      className={`px-2 py-0.5 text-[11px] font-bold uppercase ${
                         log.severity === "critical"
                           ? "bg-hermes-critical text-white"
                           : log.severity === "warning"
@@ -178,7 +178,7 @@ export default function IncidentAuditLog({ onSelectAuditPreset }: Props) {
                   <td className="py-3 px-4 text-right">
                     <button
                       onClick={() => toggleStatus(log.id)}
-                      className={`px-2.5 py-1 text-[10px] font-bold uppercase cursor-pointer transition-all ${
+                      className={`px-2.5 py-1 text-[11px] font-bold uppercase cursor-pointer transition-all ${
                         log.status === "open"
                           ? "bg-hermes-critical text-white"
                           : log.status === "acknowledged"

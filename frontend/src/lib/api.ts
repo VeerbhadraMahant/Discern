@@ -43,3 +43,13 @@ export async function dataUrlToFile(dataUrl: string, filename: string): Promise<
   const blob = await res.blob();
   return new File([blob], filename, { type: blob.type || "image/jpeg" });
 }
+
+// Fetch a remote image (e.g. a sample scenario photo) and convert it into a
+// File so it can be sent through the same real analyzeFrame() pipeline as a
+// user upload, instead of relying on any pre-written mock result.
+export async function urlToFile(url: string, filename: string): Promise<File> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to fetch sample image (${res.status})`);
+  const blob = await res.blob();
+  return new File([blob], filename, { type: blob.type || "image/jpeg" });
+}

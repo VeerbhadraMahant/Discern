@@ -11,7 +11,7 @@ export default function Footer({ onLaunch }: { onLaunch: () => void }) {
                 <span className="-rotate-45">D</span>
               </div>
               <span className="font-heading text-lg font-bold uppercase tracking-wider">DISCERN AGENT</span>
-              <span className="bg-white/10 px-2 py-0.5 text-[10px] uppercase border border-white/20">
+              <span className="bg-white/10 px-2 py-0.5 text-[11px] uppercase border border-white/20">
                 v2.4-edge
               </span>
             </div>

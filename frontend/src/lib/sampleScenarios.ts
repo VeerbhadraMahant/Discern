@@ -1,284 +1,5 @@
 import type { ScenarioPreset, CameraFeed, AuditRecord } from "./types";
 
-// Helper function to create realistic procedural CCTV frame SVG Data URLs
-function makeCctvSvg(
-  scenario: "dawn" | "fog" | "dust" | "glare" | "clear",
-  mode: "raw" | "restored" | "annotated"
-): string {
-  const width = 1280;
-  const height = 720;
-
-  // Colors and atmosphere based on condition and restoration
-  let bgGradient = "";
-  let overlayEffects = "";
-  let person1Visible = true;
-  let person2Visible = true;
-  let machineVisible = true;
-
-  if (scenario === "dawn") {
-    if (mode === "raw") {
-      bgGradient = `
-        <defs>
-          <linearGradient id="skyDawn" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#0a1128" />
-            <stop offset="40%" stop-color="#1c1936" />
-            <stop offset="80%" stop-color="#2a1b24" />
-            <stop offset="100%" stop-color="#181318" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#skyDawn)" />
-        <rect width="100%" height="100%" fill="#000000" opacity="0.65" />
-      `;
-    } else {
-      // CLAHE + Gamma enhanced
-      bgGradient = `
-        <defs>
-          <linearGradient id="skyDawnEnh" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#1e2a4a" />
-            <stop offset="40%" stop-color="#3b3760" />
-            <stop offset="80%" stop-color="#60404a" />
-            <stop offset="100%" stop-color="#352e35" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#skyDawnEnh)" />
-      `;
-    }
-  } else if (scenario === "fog") {
-    if (mode === "raw") {
-      bgGradient = `
-        <defs>
-          <linearGradient id="fogRaw" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#bdc3c7" />
-            <stop offset="100%" stop-color="#95a5a6" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#fogRaw)" />
-        <rect width="100%" height="100%" fill="#ffffff" opacity="0.75" />
-      `;
-    } else {
-      // Dehazed (Dark channel prior)
-      bgGradient = `
-        <defs>
-          <linearGradient id="fogDehazed" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#4a6572" />
-            <stop offset="60%" stop-color="#34495e" />
-            <stop offset="100%" stop-color="#2c3e50" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#fogDehazed)" />
-      `;
-    }
-  } else if (scenario === "dust") {
-    if (mode === "raw") {
-      bgGradient = `
-        <defs>
-          <linearGradient id="dustRaw" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#b08d57" />
-            <stop offset="100%" stop-color="#7a5229" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#dustRaw)" />
-        <rect width="100%" height="100%" fill="#d4a373" opacity="0.65" />
-      `;
-    } else {
-      // Dehazed + Denoised
-      bgGradient = `
-        <defs>
-          <linearGradient id="dustDehazed" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#6b5b45" />
-            <stop offset="100%" stop-color="#3d2b1f" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#dustDehazed)" />
-      `;
-    }
-  } else if (scenario === "glare") {
-    if (mode === "raw") {
-      bgGradient = `
-        <defs>
-          <radialGradient id="glareRaw" cx="70%" cy="30%" r="60%">
-            <stop offset="0%" stop-color="#ffffff" />
-            <stop offset="30%" stop-color="#fff8e7" />
-            <stop offset="70%" stop-color="#94a3b8" />
-            <stop offset="100%" stop-color="#475569" />
-          </radialGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#glareRaw)" />
-      `;
-    } else {
-      // Dynamic range compensated
-      bgGradient = `
-        <defs>
-          <radialGradient id="glareComp" cx="70%" cy="30%" r="60%">
-            <stop offset="0%" stop-color="#e2e8f0" />
-            <stop offset="50%" stop-color="#64748b" />
-            <stop offset="100%" stop-color="#1e293b" />
-          </radialGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#glareComp)" />
-      `;
-    }
-  } else {
-    // Clear daytime
-    bgGradient = `
-      <defs>
-        <linearGradient id="clearSky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#60a5fa" />
-          <stop offset="60%" stop-color="#93c5fd" />
-          <stop offset="100%" stop-color="#e2e8f0" />
-        </linearGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#clearSky)" />
-    `;
-  }
-
-  // Site Scenery Elements (Ground, Scaffolding, Crane / Excavator, Barrier)
-  const scenery = `
-    <!-- Ground plane -->
-    <polygon points="0,520 1280,500 1280,720 0,720" fill="#2d3748" opacity="0.9" />
-    <polygon points="0,550 1280,530 1280,720 0,720" fill="#1a202c" />
-
-    <!-- Industrial Structure / Scaffolding -->
-    <line x1="120" y1="180" x2="120" y2="540" stroke="#718096" stroke-width="6" />
-    <line x1="280" y1="180" x2="280" y2="530" stroke="#718096" stroke-width="6" />
-    <line x1="120" y1="260" x2="280" y2="260" stroke="#718096" stroke-width="4" />
-    <line x1="120" y1="380" x2="280" y2="380" stroke="#718096" stroke-width="4" />
-    <line x1="120" y1="260" x2="280" y2="380" stroke="#4a5568" stroke-width="3" />
-    <line x1="120" y1="380" x2="280" y2="260" stroke="#4a5568" stroke-width="3" />
-
-    <!-- Heavy Machinery (Excavator / Gantry) -->
-    <g id="heavyEquipment" transform="translate(680, 290)">
-      <!-- Track base -->
-      <rect x="0" y="160" width="220" height="40" rx="10" fill="#2d3748" />
-      <circle cx="30" cy="180" r="14" fill="#1a202c" />
-      <circle cx="75" cy="180" r="14" fill="#1a202c" />
-      <circle cx="120" cy="180" r="14" fill="#1a202c" />
-      <circle cx="165" cy="180" r="14" fill="#1a202c" />
-      <circle cx="200" cy="180" r="10" fill="#1a202c" />
-      
-      <!-- Cabin -->
-      <rect x="40" y="90" width="90" height="75" rx="6" fill="#d97706" />
-      <rect x="50" y="100" width="45" height="35" rx="3" fill="#93c5fd" opacity="0.6" />
-      <!-- Counterweight -->
-      <rect x="130" y="100" width="45" height="65" rx="4" fill="#b45309" />
-      <!-- Boom Arm -->
-      <polygon points="40,110 -140,20 -130,5 50,95" fill="#d97706" />
-      <!-- Hydraulic Arm -->
-      <polygon points="-140,20 -190,130 -175,135 -130,25" fill="#b45309" />
-      <!-- Bucket -->
-      <path d="M-195,130 L-220,165 L-170,175 L-165,140 Z" fill="#4b5563" />
-    </g>
-
-    <!-- Danger Zone Markings on Ground -->
-    <polygon points="480,480 920,470 980,660 420,670" fill="#ef4444" opacity="0.15" stroke="#ef4444" stroke-width="2" stroke-dasharray="10,6" />
-    <text x="560" y="630" fill="#f87171" font-family="sans-serif" font-size="14" font-weight="700" letter-spacing="2">DANGER: 15m ROTATION RADIUS</text>
-  `;
-
-  // Workers representation
-  const workers = `
-    <!-- Worker 1 (Inside Danger Zone, No Helmet) -->
-    <g id="worker1" transform="translate(540, 390)">
-      <!-- Head / Hair without helmet -->
-      <circle cx="25" cy="20" r="12" fill="#4a3728" />
-      <!-- Face -->
-      <circle cx="25" cy="23" r="9" fill="#fbcfe8" />
-      <!-- Torso / Vest -->
-      <rect x="12" y="32" width="26" height="42" rx="4" fill="#f97316" />
-      <line x1="16" y1="36" x2="16" y2="70" stroke="#ffffff" stroke-width="3" />
-      <line x1="34" y1="36" x2="34" y2="70" stroke="#ffffff" stroke-width="3" />
-      <!-- Legs -->
-      <rect x="14" y="74" width="9" height="48" fill="#1e3a8a" />
-      <rect x="27" y="74" width="9" height="48" fill="#1e3a8a" />
-      <!-- Boots -->
-      <rect x="12" y="118" width="13" height="8" rx="2" fill="#78350f" />
-      <rect x="27" y="118" width="13" height="8" rx="2" fill="#78350f" />
-    </g>
-
-    <!-- Worker 2 (Safe Zone, Fully Compliant) -->
-    <g id="worker2" transform="translate(230, 420)">
-      <!-- Hard Hat (Yellow Helmet) -->
-      <ellipse cx="25" cy="18" rx="14" ry="9" fill="#facc15" stroke="#ca8a04" stroke-width="1" />
-      <!-- Face -->
-      <circle cx="25" cy="23" r="8" fill="#fed7aa" />
-      <!-- Torso / Hi-Vis Yellow Vest -->
-      <rect x="12" y="32" width="26" height="40" rx="4" fill="#84cc16" />
-      <line x1="16" y1="34" x2="16" y2="68" stroke="#ffffff" stroke-width="3" />
-      <line x1="34" y1="34" x2="34" y2="68" stroke="#ffffff" stroke-width="3" />
-      <!-- Legs -->
-      <rect x="14" y="72" width="9" height="44" fill="#334155" />
-      <rect x="27" y="72" width="9" height="44" fill="#334155" />
-      <!-- Boots -->
-      <rect x="12" y="112" width="13" height="8" rx="2" fill="#1e293b" />
-      <rect x="27" y="112" width="13" height="8" rx="2" fill="#1e293b" />
-    </g>
-  `;
-
-  // Overlays & Annotations
-  let annotations = "";
-  if (mode === "annotated") {
-    annotations = `
-      <!-- BBox 1: Worker 1 (Critical Violation) -->
-      <g>
-        <rect x="530" y="380" width="70" height="155" fill="none" stroke="#ef4444" stroke-width="3" rx="4" />
-        <rect x="530" y="352" width="165" height="26" fill="#ef4444" rx="4" />
-        <text x="538" y="370" fill="#ffffff" font-family="Inter, sans-serif" font-size="12" font-weight="700">PERSON 1 [94%] · CRITICAL</text>
-        
-        <!-- Callout pointer -->
-        <circle cx="565" cy="405" r="16" fill="none" stroke="#ef4444" stroke-width="2" stroke-dasharray="3,3" />
-        <line x1="600" y1="400" x2="650" y2="370" stroke="#ef4444" stroke-width="2" />
-        <rect x="650" y="355" width="170" height="24" fill="#1e293b" rx="4" stroke="#ef4444" stroke-width="1" />
-        <text x="658" y="371" fill="#fca5a5" font-family="Inter, sans-serif" font-size="11" font-weight="600">! Missing Hard Hat</text>
-      </g>
-
-      <!-- BBox 2: Worker 2 (Compliant Safe) -->
-      <g>
-        <rect x="220" y="410" width="68" height="148" fill="none" stroke="#10b981" stroke-width="2" rx="4" />
-        <rect x="220" y="386" width="150" height="22" fill="#10b981" rx="4" />
-        <text x="228" y="402" fill="#ffffff" font-family="Inter, sans-serif" font-size="11" font-weight="700">PERSON 2 [98%] · COMPLIANT</text>
-      </g>
-
-      <!-- BBox 3: Machinery BBox -->
-      <g>
-        <rect x="470" y="270" width="460" height="270" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="6,4" rx="6" />
-        <rect x="470" y="246" width="180" height="22" fill="#f59e0b" rx="4" />
-        <text x="478" y="262" fill="#151515" font-family="Inter, sans-serif" font-size="11" font-weight="700">EXCAVATOR DANGER ZONE</text>
-      </g>
-    `;
-  }
-
-  // CCTV HUD Overlay
-  const hud = `
-    <!-- Top HUD Bar -->
-    <rect x="20" y="20" width="1240" height="42" fill="#070709" opacity="0.75" rx="6" />
-    <circle cx="42" cy="41" r="5" fill="#ef4444" />
-    <text x="56" y="45" fill="#ffffff" font-family="monospace" font-size="13" font-weight="700">REC ● CAM-04_NORTH_ZONE</text>
-    <text x="320" y="45" fill="#94a3b8" font-family="monospace" font-size="12">1080p @ 30fps · H.265 · 1.4 Mbps</text>
-    <text x="760" y="45" fill="#94a3b8" font-family="monospace" font-size="12">LUX: 12.4 lx · SENSOR: ATMOS-4</text>
-    <text x="1060" y="45" fill="#2597d0" font-family="monospace" font-size="13" font-weight="700">DISCERN AGENT: ACTIVE</text>
-
-    <!-- Bottom Timestamp Bar -->
-    <rect x="20" y="660" width="480" height="36" fill="#070709" opacity="0.75" rx="6" />
-    <text x="36" y="683" fill="#ffffff" font-family="monospace" font-size="13">2026-09-15 05:42:19 UTC · SITE #104</text>
-
-    <!-- Crosshair Target Reticle in Center -->
-    <circle cx="640" cy="360" r="28" fill="none" stroke="#2597d0" stroke-width="1.5" opacity="0.4" stroke-dasharray="8,4" />
-    <line x1="610" y1="360" x2="670" y2="360" stroke="#2597d0" stroke-width="1" opacity="0.4" />
-    <line x1="640" y1="330" x2="640" y2="390" stroke="#2597d0" stroke-width="1" opacity="0.4" />
-  `;
-
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="100%" height="100%">
-      ${bgGradient}
-      ${scenery}
-      ${workers}
-      ${annotations}
-      ${hud}
-    </svg>
-  `;
-
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
 export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
   {
     id: "dawn-construction",
@@ -288,9 +9,10 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
     condition: "Low Light / Dawn (12.4 Lux)",
     tag: "Low Light",
     description: "Dawn lighting obscuring workers operating in the swing radius of a 30-ton excavator. Discern detects low ambient illumination, engages OpenCV CLAHE + Gamma restoration, locates workers with YOLOv8n, and identifies missing helmet and unsafe proximity.",
-    rawImageUrl: makeCctvSvg("dawn", "raw"),
-    restoredImageUrl: makeCctvSvg("dawn", "restored"),
-    annotatedImageUrl: makeCctvSvg("dawn", "annotated"),
+    photoUrl: "https://images.unsplash.com/photo-1776594974675-b21647efe342?w=1600&q=80&auto=format&fit=crop",
+    photoCredit: "Markus Kammermann / Unsplash",
+    rawFilter: "brightness(0.4) contrast(0.95) saturate(0.7)",
+    restoredFilter: "brightness(1.05) contrast(1.12) saturate(1.05)",
     analysis: {
       scene: {
         setting: "Construction site, excavation trench with heavy excavator",
@@ -349,9 +71,9 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
           recommendation: "Trigger audible perimeter exclusion alarm and verify clear line-of-sight.",
         },
       ],
-      annotated_image: makeCctvSvg("dawn", "annotated"),
-      raw_image: makeCctvSvg("dawn", "raw"),
-      restored_image: makeCctvSvg("dawn", "restored"),
+      annotated_image: "https://images.unsplash.com/photo-1776594974675-b21647efe342?w=1600&q=80&auto=format&fit=crop",
+      raw_image: "https://images.unsplash.com/photo-1776594974675-b21647efe342?w=1600&q=80&auto=format&fit=crop",
+      restored_image: "https://images.unsplash.com/photo-1776594974675-b21647efe342?w=1600&q=80&auto=format&fit=crop",
     },
   },
   {
@@ -362,9 +84,10 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
     condition: "Dense Sea Fog / Visibility < 30m",
     tag: "Dense Fog",
     description: "Coastal fog rolls in over container loading berths, scattering light and obscuring dock workers near automated straddle carriers. Discern deploys Dark-Channel Prior Dehazing before running zone violation checks.",
-    rawImageUrl: makeCctvSvg("fog", "raw"),
-    restoredImageUrl: makeCctvSvg("fog", "restored"),
-    annotatedImageUrl: makeCctvSvg("fog", "annotated"),
+    photoUrl: "https://images.unsplash.com/photo-1706499856012-14f062c72b49?w=1600&q=80&auto=format&fit=crop",
+    photoCredit: "Unsplash",
+    rawFilter: "brightness(1.15) contrast(0.55) saturate(0.4) blur(1.5px)",
+    restoredFilter: "contrast(1.22) saturate(1.1) brightness(1.02)",
     analysis: {
       scene: {
         setting: "Maritime container terminal berth, wet pavement, overhead gantry crane",
@@ -392,7 +115,7 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
           id: "p1",
           label: "Dock Worker 1",
           confidence: 0.91,
-          box: { x: 530, y: 380, width: 70, height: 155 },
+          box: { x: 555, y: 145, width: 95, height: 130 },
           source: "yolov8n_dehazed",
         },
       ],
@@ -407,9 +130,9 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
           recommendation: "E-Stop automatic gantry traverse and alert Port Operations Center.",
         },
       ],
-      annotated_image: makeCctvSvg("fog", "annotated"),
-      raw_image: makeCctvSvg("fog", "raw"),
-      restored_image: makeCctvSvg("fog", "restored"),
+      annotated_image: "https://images.unsplash.com/photo-1706499856012-14f062c72b49?w=1600&q=80&auto=format&fit=crop",
+      raw_image: "https://images.unsplash.com/photo-1706499856012-14f062c72b49?w=1600&q=80&auto=format&fit=crop",
+      restored_image: "https://images.unsplash.com/photo-1706499856012-14f062c72b49?w=1600&q=80&auto=format&fit=crop",
     },
   },
   {
@@ -420,9 +143,10 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
     condition: "High Dust Particulate (PM10 > 450)",
     tag: "Dust Storm",
     description: "Heavy 200-ton haul truck pass creates a dense dust plume blinding fixed CCTV models. Discern engages combined Dehazing and Bilateral Denoising to isolate pedestrian surveyors.",
-    rawImageUrl: makeCctvSvg("dust", "raw"),
-    restoredImageUrl: makeCctvSvg("dust", "restored"),
-    annotatedImageUrl: makeCctvSvg("dust", "annotated"),
+    photoUrl: "https://images.unsplash.com/photo-1622645636770-11fbf0611463?w=1600&q=80&auto=format&fit=crop",
+    photoCredit: "Unsplash",
+    rawFilter: "sepia(0.45) brightness(0.8) contrast(0.85) saturate(1.3)",
+    restoredFilter: "sepia(0.08) brightness(1.05) contrast(1.1) saturate(1.05)",
     analysis: {
       scene: {
         setting: "Open-pit mine haul road, mineral extraction ramp, heavy haul truck",
@@ -465,9 +189,9 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
           recommendation: "Activate proximity warning audio beacon on in-cab truck display.",
         },
       ],
-      annotated_image: makeCctvSvg("dust", "annotated"),
-      raw_image: makeCctvSvg("dust", "raw"),
-      restored_image: makeCctvSvg("dust", "restored"),
+      annotated_image: "https://images.unsplash.com/photo-1622645636770-11fbf0611463?w=1600&q=80&auto=format&fit=crop",
+      raw_image: "https://images.unsplash.com/photo-1622645636770-11fbf0611463?w=1600&q=80&auto=format&fit=crop",
+      restored_image: "https://images.unsplash.com/photo-1622645636770-11fbf0611463?w=1600&q=80&auto=format&fit=crop",
     },
   },
   {
@@ -478,9 +202,10 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
     condition: "Direct Solar Glare & Harsh Shadows",
     tag: "High Glare",
     description: "Low winter sun reflecting off galvanized steel sheet coils causes extreme overexposure and deep shadows. Discern adapts dynamic range compensation to inspect worker PPE.",
-    rawImageUrl: makeCctvSvg("glare", "raw"),
-    restoredImageUrl: makeCctvSvg("glare", "restored"),
-    annotatedImageUrl: makeCctvSvg("glare", "annotated"),
+    photoUrl: "https://images.unsplash.com/photo-1586472003620-73184ff05c4a?w=1600&q=80&auto=format&fit=crop",
+    photoCredit: "Roman Chukhin / Unsplash",
+    rawFilter: "brightness(1.4) contrast(1.35) saturate(0.55)",
+    restoredFilter: "brightness(1.02) contrast(1.05) saturate(1.05)",
     analysis: {
       scene: {
         setting: "Outdoor industrial metal yard, direct sunlight reflection, overhead crane",
@@ -508,7 +233,7 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
           id: "p1",
           label: "Rigger 1",
           confidence: 0.93,
-          box: { x: 530, y: 380, width: 70, height: 155 },
+          box: { x: 145, y: 430, width: 100, height: 170 },
           source: "yolov8n_tonemapped",
         },
       ],
@@ -523,9 +248,9 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
           recommendation: "Issue hi-vis vest reminder at yard check-in turnstile.",
         },
       ],
-      annotated_image: makeCctvSvg("glare", "annotated"),
-      raw_image: makeCctvSvg("glare", "raw"),
-      restored_image: makeCctvSvg("glare", "restored"),
+      annotated_image: "https://images.unsplash.com/photo-1586472003620-73184ff05c4a?w=1600&q=80&auto=format&fit=crop",
+      raw_image: "https://images.unsplash.com/photo-1586472003620-73184ff05c4a?w=1600&q=80&auto=format&fit=crop",
+      restored_image: "https://images.unsplash.com/photo-1586472003620-73184ff05c4a?w=1600&q=80&auto=format&fit=crop",
     },
   },
   {
@@ -536,9 +261,10 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
     condition: "Clear Sunlight / 85,000 Lux",
     tag: "Clear Weather",
     description: "Benchmark test in optimal weather conditions. Discern's agent intelligently skips restoration steps, saving compute cycles and latency while directly running person detection and compliance checks.",
-    rawImageUrl: makeCctvSvg("clear", "raw"),
-    restoredImageUrl: makeCctvSvg("clear", "restored"),
-    annotatedImageUrl: makeCctvSvg("clear", "annotated"),
+    photoUrl: "https://images.unsplash.com/photo-1611816951577-198c5dcf0e96?w=1600&q=80&auto=format&fit=crop",
+    photoCredit: "Unsplash",
+    rawFilter: "none",
+    restoredFilter: "none",
     analysis: {
       scene: {
         setting: "Logistics staging yard, concrete apron, gate barrier",
@@ -571,9 +297,154 @@ export const SAMPLE_SCENARIOS: ScenarioPreset[] = [
         },
       ],
       violations: [],
-      annotated_image: makeCctvSvg("clear", "annotated"),
-      raw_image: makeCctvSvg("clear", "raw"),
-      restored_image: makeCctvSvg("clear", "raw"),
+      annotated_image: "https://images.unsplash.com/photo-1611816951577-198c5dcf0e96?w=1600&q=80&auto=format&fit=crop",
+      raw_image: "https://images.unsplash.com/photo-1611816951577-198c5dcf0e96?w=1600&q=80&auto=format&fit=crop",
+      restored_image: "https://images.unsplash.com/photo-1611816951577-198c5dcf0e96?w=1600&q=80&auto=format&fit=crop",
+    },
+  },
+  {
+    id: "fog-highway-traffic",
+    title: "Foggy Highway Multi-Vehicle",
+    site: "Interstate 9 Corridor — Northbound",
+    camera: "CAM-21 (Overpass Gantry)",
+    condition: "Dense Fog / Visibility < 60m",
+    tag: "Highway Fog",
+    description: "Pure object-detection benchmark: a dense fog bank rolling over multi-lane highway traffic. Discern dehazes the frame before running YOLOv8n to localize every car, truck, and motorcycle in the scattered lanes.",
+    photoUrl: "https://images.unsplash.com/photo-1555689502-e6d568a741e9?w=1600&q=80&auto=format&fit=crop",
+    photoCredit: "Ivan Bogdanov / Unsplash",
+    rawFilter: "brightness(1.1) contrast(0.6) saturate(0.5) blur(1px)",
+    restoredFilter: "contrast(1.2) saturate(1.1) brightness(1.02)",
+    analysis: {
+      scene: {
+        setting: "Multi-lane interstate highway, elevated overpass camera, dense traffic",
+        lighting: "normal",
+        weather: "fog",
+        visibility: "poor",
+        human_presence: false,
+        machinery_presence: true,
+        summary: "Thick ground fog bank reducing highway visibility to under 60 meters with heavy multi-lane vehicle traffic.",
+      },
+      plan: {
+        restoration_tools: ["dehaze"],
+        detection_tools: ["person_detection"],
+        reasoning: "Visibility is severely reduced by fog scattering. Dark-Channel Prior dehazing applied to recover lane markings and vehicle edges before running multi-class YOLOv8n detection (car/truck/motorcycle/bicycle/person).",
+      },
+      steps: [
+        { name: "Scene understanding", status: "completed", detail: "Highway overpass, dense fog, heavy vehicle traffic", duration_ms: 360 },
+        { name: "Tool selection", status: "completed", detail: "Selected Dark-Channel Prior Dehaze, multi-class YOLOv8n", duration_ms: 9 },
+        { name: "Restoration (OpenCV Dehaze)", status: "completed", detail: "Applied Dark-Channel Prior atmospheric light recovery", duration_ms: 21 },
+        { name: "Object detection (YOLOv8n)", status: "completed", detail: "6 vehicles localized across 3 lanes", duration_ms: 33 },
+        { name: "Violation reasoning", status: "skipped", detail: "No people in frame; PPE/zone checks not applicable", duration_ms: 0 },
+      ],
+      detections: [
+        { id: "v1", label: "car", confidence: 0.93, box: { x: 210, y: 430, width: 150, height: 90 }, source: "yolov8n_dehazed" },
+        { id: "v2", label: "car", confidence: 0.89, box: { x: 430, y: 400, width: 130, height: 80 }, source: "yolov8n_dehazed" },
+        { id: "v3", label: "truck", confidence: 0.91, box: { x: 700, y: 350, width: 190, height: 130 }, source: "yolov8n_dehazed" },
+        { id: "v4", label: "car", confidence: 0.85, box: { x: 950, y: 460, width: 140, height: 85 }, source: "yolov8n_dehazed" },
+      ],
+      violations: [],
+      annotated_image: "https://images.unsplash.com/photo-1555689502-e6d568a741e9?w=1600&q=80&auto=format&fit=crop",
+      raw_image: "https://images.unsplash.com/photo-1555689502-e6d568a741e9?w=1600&q=80&auto=format&fit=crop",
+      restored_image: "https://images.unsplash.com/photo-1555689502-e6d568a741e9?w=1600&q=80&auto=format&fit=crop",
+    },
+  },
+  {
+    id: "rain-street-crossing",
+    title: "Rainy Street Crossing",
+    site: "Downtown Arterial — 5th & Main",
+    camera: "CAM-15 (Signal Mast)",
+    condition: "Heavy Rain / Wet Pavement",
+    tag: "Heavy Rain",
+    description: "Rain speckle and reflective wet asphalt degrade a busy downtown crosswalk feed. Discern denoises the rain streaks before localizing pedestrians and vehicles, then reasons about unsafe roadway proximity.",
+    photoUrl: "https://images.unsplash.com/photo-1576514864427-f0809d2b66eb?w=1600&q=80&auto=format&fit=crop",
+    photoCredit: "Gil Ribeiro / Unsplash",
+    rawFilter: "brightness(0.75) contrast(0.85) saturate(0.6) blur(0.6px)",
+    restoredFilter: "brightness(1.08) contrast(1.15) saturate(1.05)",
+    analysis: {
+      scene: {
+        setting: "Downtown crosswalk and arterial street, wet pavement, pedestrian traffic",
+        lighting: "low_light",
+        weather: "rain",
+        visibility: "reduced",
+        human_presence: true,
+        machinery_presence: false,
+        summary: "Heavy rainfall over a downtown pedestrian crossing, with rain streaks and wet-pavement glare degrading sensor contrast.",
+      },
+      plan: {
+        restoration_tools: ["denoise", "low_light_enhancement"],
+        detection_tools: ["person_detection", "zone_reasoning"],
+        reasoning: "Rain speckle and low ambient light both degrade the frame. Bilateral denoising removes rain-streak noise, then CLAHE recovers pedestrian contrast, before multi-class YOLOv8n localizes people and any nearby vehicles.",
+      },
+      steps: [
+        { name: "Scene understanding", status: "completed", detail: "Downtown crosswalk, heavy rain, pedestrians present", duration_ms: 340 },
+        { name: "Tool selection", status: "completed", detail: "Selected Denoise + CLAHE, multi-class YOLOv8n, zone reasoning", duration_ms: 10 },
+        { name: "Restoration (Denoise + CLAHE)", status: "completed", detail: "Bilateral filter (d=9) + CLAHE contrast recovery", duration_ms: 27 },
+        { name: "Object detection (YOLOv8n)", status: "completed", detail: "3 pedestrians localized in crosswalk", duration_ms: 30 },
+        { name: "Violation reasoning (Gemini)", status: "completed", detail: "1 warning proximity violation logged", duration_ms: 340 },
+      ],
+      detections: [
+        { id: "p1", label: "person", confidence: 0.9, box: { x: 250, y: 380, width: 90, height: 200 }, source: "yolov8n_denoised" },
+        { id: "p2", label: "person", confidence: 0.87, box: { x: 420, y: 400, width: 85, height: 190 }, source: "yolov8n_denoised" },
+      ],
+      violations: [
+        {
+          id: "v1",
+          type: "unsafe_proximity",
+          severity: "warning",
+          description: "Pedestrian (Person 1) is stepping off the curb into the active traffic lane before the crossing signal, reducing visible reaction time for approaching vehicles in wet-braking conditions.",
+          related_detection_ids: ["p1"],
+          oshaCode: "MUTCD Ch. 4E",
+          recommendation: "Flag for traffic-signal timing review at this intersection.",
+        },
+      ],
+      annotated_image: "https://images.unsplash.com/photo-1576514864427-f0809d2b66eb?w=1600&q=80&auto=format&fit=crop",
+      raw_image: "https://images.unsplash.com/photo-1576514864427-f0809d2b66eb?w=1600&q=80&auto=format&fit=crop",
+      restored_image: "https://images.unsplash.com/photo-1576514864427-f0809d2b66eb?w=1600&q=80&auto=format&fit=crop",
+    },
+  },
+  {
+    id: "night-traffic-glare",
+    title: "Night Traffic Headlight Glare",
+    site: "Ring Road Junction — Overpass 12",
+    camera: "CAM-33 (Junction Mast)",
+    condition: "Night / Headlight Glare",
+    tag: "Night Glare",
+    description: "Oncoming headlights blow out sensor highlights on a busy night junction. Discern compensates dynamic range before running multi-class detection across the full vehicle stream.",
+    photoUrl: "https://images.unsplash.com/photo-1699586747892-c2b9eeeb0327?w=1600&q=80&auto=format&fit=crop",
+    photoCredit: "Unsplash",
+    rawFilter: "brightness(0.85) contrast(1.5) saturate(0.8)",
+    restoredFilter: "brightness(1.0) contrast(1.05) saturate(1.05)",
+    analysis: {
+      scene: {
+        setting: "Multi-lane ring-road junction at night, overpass camera, dense vehicle stream",
+        lighting: "night",
+        weather: "clear",
+        visibility: "reduced",
+        human_presence: false,
+        machinery_presence: true,
+        summary: "Nighttime junction with oncoming headlight glare causing sensor highlight clipping across multiple lanes of moving traffic.",
+      },
+      plan: {
+        restoration_tools: ["low_light_enhancement"],
+        detection_tools: ["person_detection"],
+        reasoning: "Headlight glare blows out highlights while surrounding areas stay underexposed. Adaptive tone compensation recovers both ends of the dynamic range before multi-class YOLOv8n vehicle detection.",
+      },
+      steps: [
+        { name: "Scene understanding", status: "completed", detail: "Night junction, headlight glare, heavy vehicle stream", duration_ms: 355 },
+        { name: "Tool selection", status: "completed", detail: "Selected Adaptive Tone Mapping, multi-class YOLOv8n", duration_ms: 8 },
+        { name: "Restoration (OpenCV Tone Map)", status: "completed", detail: "Local tone curve compression on highlight-clipped regions", duration_ms: 20 },
+        { name: "Object detection (YOLOv8n)", status: "completed", detail: "5 vehicles localized despite glare", duration_ms: 29 },
+        { name: "Violation reasoning", status: "skipped", detail: "No people in frame; PPE/zone checks not applicable", duration_ms: 0 },
+      ],
+      detections: [
+        { id: "v1", label: "car", confidence: 0.88, box: { x: 300, y: 420, width: 140, height: 90 }, source: "yolov8n_tonemapped" },
+        { id: "v2", label: "car", confidence: 0.84, box: { x: 560, y: 440, width: 130, height: 85 }, source: "yolov8n_tonemapped" },
+        { id: "v3", label: "truck", confidence: 0.9, box: { x: 780, y: 380, width: 180, height: 120 }, source: "yolov8n_tonemapped" },
+      ],
+      violations: [],
+      annotated_image: "https://images.unsplash.com/photo-1699586747892-c2b9eeeb0327?w=1600&q=80&auto=format&fit=crop",
+      raw_image: "https://images.unsplash.com/photo-1699586747892-c2b9eeeb0327?w=1600&q=80&auto=format&fit=crop",
+      restored_image: "https://images.unsplash.com/photo-1699586747892-c2b9eeeb0327?w=1600&q=80&auto=format&fit=crop",
     },
   },
 ];

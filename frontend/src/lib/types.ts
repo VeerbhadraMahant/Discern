@@ -65,9 +65,13 @@ export interface ScenarioPreset {
   condition: string;
   tag: string;
   description: string;
-  rawImageUrl: string;
-  restoredImageUrl: string;
-  annotatedImageUrl: string;
+  /** Real photograph used as the CCTV frame for this scenario. */
+  photoUrl: string;
+  photoCredit: string;
+  /** CSS filter simulating the degraded raw sensor read on top of photoUrl. */
+  rawFilter: string;
+  /** CSS filter simulating the agent's classical-CV restoration on top of photoUrl. */
+  restoredFilter: string;
   analysis: AnalyzeResponse;
 }
 

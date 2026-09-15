@@ -43,7 +43,7 @@ export default function ViolationsInspector({
           </h2>
         </div>
         <span
-          className={`px-2 py-0.5 text-[10px] uppercase font-bold ${
+          className={`px-2 py-0.5 text-[11px] uppercase font-bold ${
             violations.length > 0 ? "bg-hermes-critical text-white" : "bg-hermes-safe text-white"
           }`}
         >
@@ -87,11 +87,11 @@ export default function ViolationsInspector({
                   </span>
                   <div className="flex items-center gap-1.5">
                     {v.oshaCode && (
-                      <span className="bg-white border border-hermes-ink/20 px-1.5 py-0.5 text-[10px] text-hermes-muted">
+                      <span className="bg-white border border-hermes-ink/20 px-1.5 py-0.5 text-[11px] text-hermes-muted">
                         {v.oshaCode}
                       </span>
                     )}
-                    <span className="bg-hermes-critical text-white px-2 py-0.5 text-[10px] font-bold uppercase">
+                    <span className="bg-hermes-critical text-white px-2 py-0.5 text-[11px] font-bold uppercase">
                       {v.severity}
                     </span>
                   </div>
@@ -105,7 +105,7 @@ export default function ViolationsInspector({
                 {/* Recommendation */}
                 {v.recommendation && (
                   <div className="mt-2 bg-white p-2.5 border border-hermes-ink/10 text-xs">
-                    <span className="text-[10px] font-bold uppercase text-hermes-blue block mb-0.5">
+                    <span className="text-[11px] font-bold uppercase text-hermes-blue block mb-0.5">
                       ACTION_PROTOCOL:
                     </span>
                     <p className="text-hermes-charcoal font-body leading-snug">{v.recommendation}</p>
@@ -114,7 +114,7 @@ export default function ViolationsInspector({
 
                 {/* Footer */}
                 <div className="mt-3 pt-2.5 border-t border-hermes-ink/10 flex items-center justify-between text-xs">
-                  <span className="text-[10px] text-hermes-muted">
+                  <span className="text-[11px] text-hermes-muted">
                     TARGET: {v.related_detection_ids.join(", ") || "ZONE"}
                   </span>
 

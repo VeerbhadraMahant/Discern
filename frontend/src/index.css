@@ -10,7 +10,7 @@
     --color-hermes-white: #ffffff;
     --color-hermes-ink: #050518;
     --color-hermes-charcoal: #3a3a52;
-    --color-hermes-muted: #707090;
+    --color-hermes-muted: #5c5c78;
   }
 
   html {
@@ -36,6 +36,12 @@
   ::selection {
     background-color: #ffffff;
     color: #0000f2;
+  }
+
+  /* Baseline tracking for uppercase micro-copy so untracked labels stay legible;
+     an explicit tracking-* utility on the same element still overrides this. */
+  .uppercase {
+    letter-spacing: 0.04em;
   }
 
   /* Condensed, tall uppercase display titles like Hermes Agent with Bahnschrift */

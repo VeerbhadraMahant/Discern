@@ -72,7 +72,7 @@ export default function IndustryVerticals() {
                     <div className="flex h-10 w-10 items-center justify-center bg-[#0000f2] text-white">
                       <Icon className="h-5 w-5" />
                     </div>
-                    <span className="text-xs font-black text-[#707090] uppercase tracking-widest">
+                    <span className="text-xs font-black text-[#5c5c78] uppercase tracking-widest">
                       {v.num}
                     </span>
                   </div>
@@ -87,14 +87,14 @@ export default function IndustryVerticals() {
 
                 <div className="mt-4 space-y-3 font-mono text-xs">
                   <div className="bg-[#ff2222]/5 border-2 border-[#ff2222]/30 p-3">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[#ff2222] block mb-0.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-[#ff2222] block mb-0.5">
                       // CRITICAL_HAZARD
                     </span>
                     <p className="text-[#050518] font-body font-semibold leading-snug">{v.hazard}</p>
                   </div>
 
                   <div className="bg-[#0000f2]/5 border-2 border-[#0000f2]/30 p-3">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-[#0000f2] block mb-0.5">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-[#0000f2] block mb-0.5">
                       // AGENTIC_RESPONSE
                     </span>
                     <p className="text-[#050518] font-body font-semibold leading-snug">{v.solution}</p>

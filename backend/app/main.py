@@ -1,4 +1,5 @@
 from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.pipeline.agent import run_pipeline
@@ -32,6 +33,8 @@ async def analyze(file: UploadFile = File(...)):
         raise HTTPException(status_code=400, detail="Empty file")
 
     try:
-        return run_pipeline(image_bytes, content_type)
+        # run_pipeline is synchronous/blocking (Gemini calls, OpenCV, YOLO inference);
+        # run it off the event loop so other requests (e.g. health polling) aren't stalled.
+        return await run_in_threadpool(run_pipeline, image_bytes, content_type)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))

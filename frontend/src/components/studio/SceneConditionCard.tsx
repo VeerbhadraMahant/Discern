@@ -15,7 +15,7 @@ export default function SceneConditionCard({ scene }: Props) {
             # SCENE_UNDERSTANDING
           </h2>
         </div>
-        <span className="bg-hermes-blue text-white px-2 py-0.5 text-[10px] uppercase font-bold">
+        <span className="bg-hermes-blue text-white px-2 py-0.5 text-[11px] uppercase font-bold">
           Gemini Vision
         </span>
       </div>
@@ -27,7 +27,7 @@ export default function SceneConditionCard({ scene }: Props) {
       {/* Grid of parameters */}
       <div className="grid grid-cols-2 gap-2 text-xs">
         <div className="bg-hermes-paper p-2.5 border border-hermes-ink/10">
-          <span className="text-[10px] text-hermes-muted uppercase block">
+          <span className="text-[11px] text-hermes-muted uppercase block">
             // SETTING
           </span>
           <span className="font-bold text-hermes-ink capitalize mt-0.5 block truncate">
@@ -36,7 +36,7 @@ export default function SceneConditionCard({ scene }: Props) {
         </div>
 
         <div className="bg-hermes-paper p-2.5 border border-hermes-ink/10">
-          <span className="text-[10px] text-hermes-muted uppercase block">
+          <span className="text-[11px] text-hermes-muted uppercase block">
             // LIGHTING
           </span>
           <span className="font-bold text-hermes-ink capitalize mt-0.5 block truncate">
@@ -45,7 +45,7 @@ export default function SceneConditionCard({ scene }: Props) {
         </div>
 
         <div className="bg-hermes-paper p-2.5 border border-hermes-ink/10">
-          <span className="text-[10px] text-hermes-muted uppercase block">
+          <span className="text-[11px] text-hermes-muted uppercase block">
             // WEATHER
           </span>
           <span className="font-bold text-hermes-ink capitalize mt-0.5 block truncate">
@@ -54,7 +54,7 @@ export default function SceneConditionCard({ scene }: Props) {
         </div>
 
         <div className="bg-hermes-paper p-2.5 border border-hermes-ink/10">
-          <span className="text-[10px] text-hermes-muted uppercase block">
+          <span className="text-[11px] text-hermes-muted uppercase block">
             // VISIBILITY
           </span>
           <span className="font-bold text-hermes-blue capitalize mt-0.5 block truncate">

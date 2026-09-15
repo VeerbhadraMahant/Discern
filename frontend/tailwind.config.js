@@ -14,7 +14,7 @@ export default {
           fg: "#f2f2f2",
           ink: "#050518",
           charcoal: "#3a3a52",
-          muted: "#8585c5",
+          muted: "#5c5c78",
           accent: "#00e5ff",
           warning: "#ff9900",
           critical: "#ff3333",

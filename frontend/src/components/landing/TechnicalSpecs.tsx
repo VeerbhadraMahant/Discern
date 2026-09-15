@@ -26,8 +26,8 @@ export default function TechnicalSpecs() {
               <thead>
                 <tr className="border-b-2 border-[#050518] bg-[#f4f4f7] text-[11px] font-black uppercase tracking-wider text-[#050518]">
                   <th className="py-4 px-6 text-[#050518]">Evaluation Vector</th>
-                  <th className="py-4 px-6 text-center text-[#707090]">Fixed Single Model</th>
-                  <th className="py-4 px-6 text-center text-[#707090]">Multi-Model Ensemble</th>
+                  <th className="py-4 px-6 text-center text-[#5c5c78]">Fixed Single Model</th>
+                  <th className="py-4 px-6 text-center text-[#5c5c78]">Multi-Model Ensemble</th>
                   <th className="py-4 px-6 bg-[#0000f2] text-white text-center font-bold">
                     DISCERN AGENT
                   </th>
@@ -106,7 +106,7 @@ export default function TechnicalSpecs() {
                   <td className="py-4 px-6 font-bold text-[#050518]">
                     Restoration Method
                   </td>
-                  <td className="py-4 px-6 text-center text-[#707090] font-semibold">
+                  <td className="py-4 px-6 text-center text-[#5c5c78] font-semibold">
                     None
                   </td>
                   <td className="py-4 px-6 text-center text-[#3a3a52] font-semibold">

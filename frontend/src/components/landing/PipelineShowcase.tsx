@@ -84,7 +84,7 @@ export default function PipelineShowcase() {
                     {stage.title}
                   </h3>
 
-                  <p className="font-mono text-[11px] text-[#707090] font-bold uppercase">
+                  <p className="font-mono text-[11px] text-[#5c5c78] font-bold uppercase">
                     {stage.subtitle}
                   </p>
 
@@ -95,7 +95,7 @@ export default function PipelineShowcase() {
 
                 {/* Bottom Latency */}
                 <div className="mt-6 pt-3 border-t border-[#050518]/15 flex items-center justify-between font-mono text-xs">
-                  <span className="text-[#707090] uppercase font-bold text-[10px]">Latency</span>
+                  <span className="text-[#5c5c78] uppercase font-bold text-[11px]">Latency</span>
                   <span className="font-black text-[#0000f2]">{stage.latency}</span>
                 </div>
               </article>
@@ -117,7 +117,7 @@ export default function PipelineShowcase() {
             </p>
           </div>
           <div className="shrink-0 bg-[#0000f2] text-white p-4 font-mono text-center min-w-[150px] shadow-md">
-            <span className="text-[10px] uppercase opacity-80 block font-bold">Restoration Overhead</span>
+            <span className="text-[11px] uppercase opacity-80 block font-bold">Restoration Overhead</span>
             <span className="text-2xl font-black block mt-0.5">&lt; 35 ms</span>
           </div>
         </div>

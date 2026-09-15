@@ -64,7 +64,8 @@ export default function MultiCamGrid({ onSelectCameraPreset }: Props) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {filteredCameras.map((cam) => {
           const matchingScenario = SAMPLE_SCENARIOS.find((s) => s.id === cam.presetId);
-          const previewImg = matchingScenario?.annotatedImageUrl;
+          const previewImg = matchingScenario?.photoUrl;
+          const previewFilter = matchingScenario?.restoredFilter ?? "none";
 
           return (
             <div
@@ -81,14 +82,14 @@ export default function MultiCamGrid({ onSelectCameraPreset }: Props) {
                     <h3 className="font-bold text-xs uppercase text-hermes-ink">
                       {cam.name}
                     </h3>
-                    <p className="text-[10px] text-hermes-muted">
+                    <p className="text-[11px] text-hermes-muted">
                       {cam.location} · {cam.zone}
                     </p>
                   </div>
                 </div>
 
                 <span
-                  className={`px-2 py-0.5 text-[10px] font-bold uppercase ${
+                  className={`px-2 py-0.5 text-[11px] font-bold uppercase ${
                     cam.status === "alert"
                       ? "bg-hermes-critical text-white"
                       : "bg-hermes-safe text-white"
@@ -105,15 +106,16 @@ export default function MultiCamGrid({ onSelectCameraPreset }: Props) {
                     src={previewImg}
                     alt={cam.name}
                     className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    style={{ filter: previewFilter }}
                   />
                 )}
 
-                <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/85 px-2 py-0.5 text-[10px] text-white border border-white/20">
+                <div className="absolute top-2 left-2 flex items-center gap-1.5 bg-black/85 px-2 py-0.5 text-[11px] text-white border border-white/20">
                   <span className="h-1.5 w-1.5 bg-hermes-critical animate-ping" />
                   <span>REC ● {cam.resolution} @ {cam.fps}fps</span>
                 </div>
 
-                <div className="absolute top-2 right-2 bg-black/85 px-2 py-0.5 text-[10px] text-hermes-warning border border-white/20 uppercase">
+                <div className="absolute top-2 right-2 bg-black/85 px-2 py-0.5 text-[11px] text-hermes-warning border border-white/20 uppercase">
                   {cam.weatherCondition}
                 </div>
 

@@ -80,7 +80,7 @@ export default function Navbar({ currentView, onViewChange, onOpenUpload }: Prop
             <span className="font-heading text-2xl sm:text-3xl font-bold tracking-tight uppercase leading-none">
               DISCERN
             </span>
-            <span className="font-mono text-[10px] tracking-[0.2em] opacity-80 uppercase mt-0.5">
+            <span className="font-mono text-[11px] tracking-[0.2em] opacity-80 uppercase mt-0.5">
               AGENT
             </span>
           </button>

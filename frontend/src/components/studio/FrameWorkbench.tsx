@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import type { Detection, Violation } from "../../lib/types";
 import SliderComparison from "../ui/SliderComparison";
 import { 
@@ -17,6 +17,10 @@ interface Props {
   annotatedImage: string;
   rawImage?: string;
   restoredImage?: string;
+  /** CSS filter simulating the degraded raw sensor read (preset scenarios only). */
+  rawFilter?: string;
+  /** CSS filter simulating the agent's restoration pass (preset scenarios only). */
+  restoredFilter?: string;
   detections: Detection[];
   violations: Violation[];
   cameraName?: string;
@@ -27,10 +31,18 @@ interface Props {
 
 type ViewMode = "annotated" | "slider" | "raw" | "restored";
 
+const SEVERITY_BOX_STYLES: Record<string, { border: string; chip: string }> = {
+  critical: { border: "border-hermes-critical", chip: "bg-hermes-critical" },
+  warning: { border: "border-hermes-warning", chip: "bg-hermes-warning" },
+  info: { border: "border-hermes-safe", chip: "bg-hermes-safe" },
+};
+
 export default function FrameWorkbench({
   annotatedImage,
   rawImage,
   restoredImage,
+  rawFilter = "none",
+  restoredFilter = "none",
   detections,
   violations,
   cameraName = "CAM-04_NORTH_ZONE",
@@ -41,9 +53,51 @@ export default function FrameWorkbench({
   const [viewMode, setViewMode] = useState<ViewMode>("annotated");
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showHud, setShowHud] = useState(true);
+  // Detection boxes come back in the real uploaded image's own pixel space, which
+  // varies per photo. The <img> is displayed with object-cover (crops to fill the
+  // 16:9 canvas), so overlay boxes must be mapped through the same crop math the
+  // browser used, not just naively scaled against the container.
+  const canvasRef = useRef<HTMLDivElement>(null);
+  const [coverRect, setCoverRect] = useState<{ renderW: number; renderH: number; offsetX: number; offsetY: number } | null>(null);
+
+  const recomputeCoverRect = useCallback((imgW: number, imgH: number) => {
+    const el = canvasRef.current;
+    if (!el || !imgW || !imgH) return;
+    const containerW = el.clientWidth;
+    const containerH = el.clientHeight;
+    const containerRatio = containerW / containerH;
+    const imgRatio = imgW / imgH;
+    let renderW: number, renderH: number;
+    if (imgRatio > containerRatio) {
+      renderH = containerH;
+      renderW = containerH * imgRatio;
+    } else {
+      renderW = containerW;
+      renderH = containerW / imgRatio;
+    }
+    setCoverRect({
+      renderW,
+      renderH,
+      offsetX: (containerW - renderW) / 2,
+      offsetY: (containerH - renderH) / 2,
+    });
+  }, []);
+
+  const naturalDims = useRef<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    const onResize = () => {
+      if (naturalDims.current) recomputeCoverRect(naturalDims.current.w, naturalDims.current.h);
+    };
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, [recomputeCoverRect]);
 
   const fallbackRaw = rawImage || annotatedImage;
   const fallbackRestored = restoredImage || annotatedImage;
+
+  const activeFilter =
+    viewMode === "raw" ? rawFilter : viewMode === "restored" ? restoredFilter : restoredFilter;
 
   return (
     <div
@@ -136,10 +190,12 @@ export default function FrameWorkbench({
               afterImage={annotatedImage}
               beforeLabel="DEGRADED CAMERA STREAM"
               afterLabel="DISCERN RESTORED + OVERLAYS"
+              beforeFilter={rawFilter}
+              afterFilter={restoredFilter}
             />
           </div>
         ) : (
-          <div className="relative h-full w-full">
+          <div ref={canvasRef} className="relative h-full w-full">
             <img
               src={
                 viewMode === "raw"
@@ -149,33 +205,49 @@ export default function FrameWorkbench({
                   : annotatedImage
               }
               alt="CCTV Frame View"
-              className="h-full w-full object-cover"
+              className="h-full w-full object-cover transition-[filter] duration-300"
+              style={{ filter: activeFilter }}
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                naturalDims.current = { w: img.naturalWidth, h: img.naturalHeight };
+                recomputeCoverRect(img.naturalWidth, img.naturalHeight);
+              }}
             />
 
-            {/* Interactive Detection Overlays */}
-            {viewMode === "annotated" && detections.length > 0 && (
-              <div className="absolute inset-0 pointer-events-none">
+            {/* Interactive Detection Overlays - mapped through the same object-cover
+                crop math the browser applied, since detection boxes are in the
+                original photo's own pixel space (which varies per image). */}
+            {viewMode === "annotated" && detections.length > 0 && coverRect && naturalDims.current && (
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 {detections.map((det) => {
                   const isHighlighted = highlightedDetectionId === det.id;
+                  const violation = violations.find((v) => v.related_detection_ids.includes(det.id));
+                  const style = violation
+                    ? SEVERITY_BOX_STYLES[violation.severity]
+                    : SEVERITY_BOX_STYLES.info;
+                  const { w: natW, h: natH } = naturalDims.current!;
+                  const { renderW, renderH, offsetX, offsetY } = coverRect;
+                  const left = offsetX + (det.box.x / natW) * renderW;
+                  const top = offsetY + (det.box.y / natH) * renderH;
+                  const width = (det.box.width / natW) * renderW;
+                  const height = (det.box.height / natH) * renderH;
 
                   return (
                     <div
                       key={det.id}
-                      style={{
-                        position: "absolute",
-                        left: `${(det.box.x / 1280) * 100}%`,
-                        top: `${(det.box.y / 720) * 100}%`,
-                        width: `${(det.box.width / 1280) * 100}%`,
-                        height: `${(det.box.height / 720) * 100}%`,
-                      }}
-                      className={`pointer-events-auto cursor-pointer transition-all ${
-                        isHighlighted
-                          ? "ring-4 ring-hermes-blue bg-hermes-blue/30 animate-pulse"
-                          : ""
+                      style={{ position: "absolute", left, top, width, height }}
+                      className={`pointer-events-auto cursor-pointer transition-all border-2 ${style.border} ${
+                        isHighlighted ? "ring-4 ring-hermes-blue bg-hermes-blue/25" : ""
                       }`}
                       onMouseEnter={() => onHoverDetection(det.id)}
                       onMouseLeave={() => onHoverDetection(null)}
-                    />
+                    >
+                      <span
+                        className={`absolute -top-6 left-0 whitespace-nowrap px-1.5 py-0.5 text-[11px] font-bold uppercase text-white ${style.chip}`}
+                      >
+                        {det.label} [{Math.round(det.confidence * 100)}%]{violation ? ` · ${violation.severity}` : ""}
+                      </span>
+                    </div>
                   );
                 })}
               </div>

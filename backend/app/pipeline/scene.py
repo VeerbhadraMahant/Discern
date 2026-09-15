@@ -14,9 +14,9 @@ RESTORATION_CATALOG = {
 }
 
 DETECTION_CATALOG = {
-    "person_detection": "Locates people in the frame (YOLOv8). Use whenever human_presence is true or uncertain.",
-    "ppe_reasoning": "Vision-based check of each detected person for hard hat / high-vis vest compliance. Use whenever people are present near machinery or in a construction/industrial setting.",
-    "zone_reasoning": "Vision-based judgment of whether any person is inside a restricted/danger zone (near machinery, edges, excavation). Use when machinery_presence is true or the setting implies hazard zones (mining, ports, construction).",
+    "person_detection": "Locates people AND vehicles (car, truck, bus, motorcycle, bicycle) in the frame (YOLOv8n). Use whenever human_presence, machinery_presence, or any street/traffic activity is true or uncertain.",
+    "ppe_reasoning": "Vision-based check of each detected person for hard hat / high-vis vest compliance. Use whenever people are present near machinery or in a construction/industrial setting. Not applicable to vehicles.",
+    "zone_reasoning": "Vision-based judgment of whether any person is inside a restricted/danger zone (near machinery, edges, excavation, traffic lane). Use when machinery_presence is true or the setting implies hazard zones (mining, ports, construction, roadways).",
 }
 
 

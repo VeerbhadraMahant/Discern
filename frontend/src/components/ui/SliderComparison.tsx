@@ -6,6 +6,10 @@ interface Props {
   afterImage: string;
   beforeLabel?: string;
   afterLabel?: string;
+  /** CSS filter applied to the before image (e.g. to simulate a degraded raw feed). */
+  beforeFilter?: string;
+  /** CSS filter applied to the after image (e.g. to simulate restoration). */
+  afterFilter?: string;
   showOverlayAnnotations?: boolean;
 }
 
@@ -14,6 +18,8 @@ export default function SliderComparison({
   afterImage,
   beforeLabel = "Raw CCTV Feed (Degraded)",
   afterLabel = "Discern Agentic Restoration + Overlays",
+  beforeFilter = "none",
+  afterFilter = "none",
 }: Props) {
   const [sliderPosition, setSliderPosition] = useState(50);
   const [isDragging, setIsDragging] = useState(false);
@@ -62,6 +68,7 @@ export default function SliderComparison({
         src={afterImage}
         alt={afterLabel}
         className="absolute inset-0 h-full w-full object-cover"
+        style={{ filter: afterFilter }}
         draggable={false}
       />
 
@@ -74,6 +81,7 @@ export default function SliderComparison({
           src={beforeImage}
           alt={beforeLabel}
           className="absolute inset-0 h-full w-full object-cover"
+          style={{ filter: beforeFilter }}
           draggable={false}
         />
       </div>

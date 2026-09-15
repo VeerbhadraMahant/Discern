@@ -54,8 +54,10 @@ export default function InteractiveDemo({ onSelectScenario }: Props) {
           <div className="lg:col-span-8 space-y-3">
             <div className="border-2 border-[#050518] shadow-lg overflow-hidden bg-black">
               <SliderComparison
-                beforeImage={scenario.rawImageUrl}
-                afterImage={scenario.annotatedImageUrl}
+                beforeImage={scenario.photoUrl}
+                afterImage={scenario.photoUrl}
+                beforeFilter={scenario.rawFilter}
+                afterFilter={scenario.restoredFilter}
                 beforeLabel={`RAW DEGRADED (${scenario.condition.toUpperCase()})`}
                 afterLabel="RESTORED FRAME + YOLOv8 OVERLAYS"
               />
@@ -77,10 +79,10 @@ export default function InteractiveDemo({ onSelectScenario }: Props) {
             {/* Scene Understanding */}
             <div className="border-2 border-[#050518]/20 bg-white p-5 shadow-md space-y-3 text-[#050518]">
               <div className="flex items-center justify-between pb-2 border-b border-[#050518]/15">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#707090]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#5c5c78]">
                   # SCENE_UNDERSTANDING
                 </span>
-                <span className="text-[10px] bg-[#0000f2] text-white px-2 py-0.5 uppercase font-bold">
+                <span className="text-[11px] bg-[#0000f2] text-white px-2 py-0.5 uppercase font-bold">
                   Gemini Vision
                 </span>
               </div>
@@ -90,11 +92,11 @@ export default function InteractiveDemo({ onSelectScenario }: Props) {
 
               <div className="grid grid-cols-2 gap-2 text-xs pt-1">
                 <div className="bg-[#f4f4f7] p-2 border border-[#050518]/15">
-                  <span className="text-[10px] text-[#707090] font-bold block">LIGHTING</span>
+                  <span className="text-[11px] text-[#5c5c78] font-bold block">LIGHTING</span>
                   <span className="font-bold text-[#050518] capitalize">{scenario.analysis.scene.lighting}</span>
                 </div>
                 <div className="bg-[#f4f4f7] p-2 border border-[#050518]/15">
-                  <span className="text-[10px] text-[#707090] font-bold block">WEATHER</span>
+                  <span className="text-[11px] text-[#5c5c78] font-bold block">WEATHER</span>
                   <span className="font-bold text-[#050518] capitalize">{scenario.analysis.scene.weather}</span>
                 </div>
               </div>
@@ -102,7 +104,7 @@ export default function InteractiveDemo({ onSelectScenario }: Props) {
 
             {/* Dispatched Strategy */}
             <div className="border-2 border-[#050518]/20 bg-white p-5 shadow-md space-y-3 text-[#050518]">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-[#707090] block">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-[#5c5c78] block">
                 # DYNAMIC_DISPATCH
               </span>
               <div className="flex flex-wrap gap-1.5">
@@ -130,10 +132,10 @@ export default function InteractiveDemo({ onSelectScenario }: Props) {
             {/* Violations Card */}
             <div className="border-2 border-[#050518]/20 bg-white p-5 shadow-md space-y-3 text-[#050518]">
               <div className="flex items-center justify-between pb-2 border-b border-[#050518]/15">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-[#707090]">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-[#5c5c78]">
                   # VIOLATIONS_DETECTED ({scenario.analysis.violations.length})
                 </span>
-                <span className={`text-[10px] px-2 py-0.5 font-bold uppercase ${
+                <span className={`text-[11px] px-2 py-0.5 font-bold uppercase ${
                   scenario.analysis.violations.length > 0 ? "bg-[#ff2222] text-white" : "bg-[#00cc66] text-white"
                 }`}>
                   {scenario.analysis.violations.length > 0 ? "CRITICAL" : "COMPLIANT"}
@@ -143,7 +145,7 @@ export default function InteractiveDemo({ onSelectScenario }: Props) {
               <div className="space-y-2">
                 {scenario.analysis.violations.map((v) => (
                   <div key={v.id} className="border-2 border-[#ff2222]/30 bg-[#ff2222]/5 p-3 text-xs">
-                    <div className="flex justify-between font-bold text-[#ff2222] text-[10px] uppercase">
+                    <div className="flex justify-between font-bold text-[#ff2222] text-[11px] uppercase">
                       <span>{v.type.replace(/_/g, " ")}</span>
                       <span>{v.oshaCode}</span>
                     </div>

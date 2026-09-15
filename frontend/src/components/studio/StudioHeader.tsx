@@ -18,6 +18,7 @@ interface Props {
   onSelectPreset: (presetId: string) => void;
   onOpenUpload: () => void;
   onOpenExport: () => void;
+  canExport?: boolean;
   onReset: () => void;
   customFileName?: string | null;
 }
@@ -27,6 +28,7 @@ export default function StudioHeader({
   onSelectPreset,
   onOpenUpload,
   onOpenExport,
+  canExport = true,
   onReset,
   customFileName,
 }: Props) {
@@ -74,7 +76,9 @@ export default function StudioHeader({
 
           <button
             onClick={onOpenExport}
-            className="hermes-btn-ghost text-hermes-ink border-hermes-ink/30 hover:bg-hermes-ink/10 text-xs flex items-center gap-2"
+            disabled={!canExport}
+            title={canExport ? undefined : "Run agent analysis on this frame first"}
+            className="hermes-btn-ghost text-hermes-ink border-hermes-ink/30 hover:bg-hermes-ink/10 text-xs flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent"
           >
             <Download className="h-3.5 w-3.5" />
             <span>Export Audit (.JSON)</span>

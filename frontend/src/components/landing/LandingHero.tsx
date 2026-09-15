@@ -160,8 +160,10 @@ export default function LandingHero({ onLaunch, onSelectPreset }: Props) {
             {/* Interactive Before/After Comparison Box */}
             <div className="mt-4 border border-white/20 overflow-hidden bg-black">
               <SliderComparison
-                beforeImage={currentScenario.rawImageUrl}
-                afterImage={currentScenario.annotatedImageUrl}
+                beforeImage={currentScenario.photoUrl}
+                afterImage={currentScenario.photoUrl}
+                beforeFilter={currentScenario.rawFilter}
+                afterFilter={currentScenario.restoredFilter}
                 beforeLabel={`RAW FEED (${currentScenario.tag.toUpperCase()})`}
                 afterLabel="DISCERN RESTORED + YOLO + REASONING"
               />
@@ -170,14 +172,14 @@ export default function LandingHero({ onLaunch, onSelectPreset }: Props) {
             {/* Bottom Metrics Bar */}
             <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
               <div className="bg-white/10 p-3 border border-white/15">
-                <span className="text-[10px] uppercase text-white/70 block">Dispatched Tool</span>
+                <span className="text-[11px] uppercase text-white/70 block">Dispatched Tool</span>
                 <span className="font-bold text-white truncate block mt-0.5">
                   {currentScenario.analysis.plan.restoration_tools.join(" + ") || "Direct Bypass"}
                 </span>
               </div>
 
               <div className="bg-white/10 p-3 border border-white/15">
-                <span className="text-[10px] uppercase text-white/70 block">Safety Hazards</span>
+                <span className="text-[11px] uppercase text-white/70 block">Safety Hazards</span>
                 <span className="font-bold text-[#ff3333] truncate block mt-0.5">
                   {currentScenario.analysis.violations.length} Critical Infractions
                 </span>
@@ -185,7 +187,7 @@ export default function LandingHero({ onLaunch, onSelectPreset }: Props) {
 
               <div className="bg-white/10 p-3 border border-white/15 flex items-center justify-between">
                 <div>
-                  <span className="text-[10px] uppercase text-white/70 block">Agent Latency</span>
+                  <span className="text-[11px] uppercase text-white/70 block">Agent Latency</span>
                   <span className="font-bold text-white">
                     {currentScenario.analysis.steps.reduce((a, b) => a + b.duration_ms, 0)}ms
                   </span>

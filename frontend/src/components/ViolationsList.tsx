@@ -40,7 +40,7 @@ export default function ViolationsList({ violations }: { violations: Violation[]
                 <div className="flex items-center gap-2">
                   <Icon width={16} height={16} />
                   <span className="text-xs font-semibold uppercase tracking-wide">{TYPE_LABEL[v.type] ?? v.type}</span>
-                  <span className="ml-auto rounded-pill bg-obsidian/90 px-2 py-0.5 text-[10px] font-semibold uppercase text-paper">
+                  <span className="ml-auto rounded-pill bg-obsidian/90 px-2 py-0.5 text-[11px] font-semibold uppercase text-paper">
                     {v.severity}
                   </span>
                 </div>

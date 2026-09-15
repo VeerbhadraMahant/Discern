@@ -18,7 +18,7 @@ export default function ToolsEngagedCard({ plan }: Props) {
             # DISPATCHED_PIPELINE
           </h2>
         </div>
-        <span className="bg-hermes-ink text-white px-2 py-0.5 text-[10px] uppercase font-bold">
+        <span className="bg-hermes-ink text-white px-2 py-0.5 text-[11px] uppercase font-bold">
           {restorationCount + detectionCount} Tools Active
         </span>
       </div>
@@ -26,7 +26,7 @@ export default function ToolsEngagedCard({ plan }: Props) {
       <div className="space-y-3 text-xs">
         {/* Restoration Section */}
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-hermes-muted block mb-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-hermes-muted block mb-1">
             // OPENCV_RESTORATION
           </span>
           {restorationCount === 0 ? (
@@ -49,7 +49,7 @@ export default function ToolsEngagedCard({ plan }: Props) {
 
         {/* Detection Section */}
         <div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-hermes-muted block mb-1">
+          <span className="text-[11px] font-bold uppercase tracking-wider text-hermes-muted block mb-1">
             // LOCALIZATION_&_REASONING
           </span>
           <div className="flex flex-wrap gap-1.5">
@@ -67,7 +67,7 @@ export default function ToolsEngagedCard({ plan }: Props) {
 
       {/* Rationale */}
       <div className="bg-hermes-paper p-3 border border-hermes-ink/10 text-xs">
-        <span className="text-[10px] font-bold uppercase text-hermes-blue block mb-1">
+        <span className="text-[11px] font-bold uppercase text-hermes-blue block mb-1">
           AGENT_RATIONALE:
         </span>
         <p className="text-hermes-charcoal font-body leading-relaxed">

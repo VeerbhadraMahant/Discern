@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import type { AppView, AnalyzeResponse } from "./lib/types";
 import { SAMPLE_SCENARIOS } from "./lib/sampleScenarios";
-import { analyzeFrame, checkHealth } from "./lib/api";
+import { analyzeFrame, urlToFile } from "./lib/api";
 
 // Layout
 import Navbar from "./components/layout/Navbar";
@@ -50,41 +50,51 @@ export default function App() {
   // Active scenario preset
   const activePreset = SAMPLE_SCENARIOS.find((s) => s.id === selectedPresetId) || SAMPLE_SCENARIOS[0];
 
-  // Active analysis data: either custom uploaded result or active preset
-  const activeAnalysis: AnalyzeResponse = customResult || activePreset.analysis;
-  const activeAnnotatedImage = customResult?.annotated_image || activePreset.annotatedImageUrl;
-  const activeRawImage = customResult?.raw_image || activePreset.rawImageUrl;
-  const activeRestoredImage = customResult?.restored_image || activePreset.restoredImageUrl;
+  // Active analysis is only ever a REAL backend result (from an upload or from
+  // running the agent on a preset's sample photo) - null means this frame has
+  // not been analyzed yet, so the UI shows the raw image with no fabricated
+  // detections/violations rather than pre-written mock numbers.
+  const activeAnalysis: AnalyzeResponse | null = customResult;
+  const activeAnnotatedImage = customResult?.annotated_image || activePreset.photoUrl;
+  const activeRawImage = customResult?.raw_image || activePreset.photoUrl;
+  const activeRestoredImage = customResult?.restored_image || activePreset.photoUrl;
+  // CSS filters simulate the raw/restored look on a single real photo for an
+  // un-analyzed preset; a real backend result already has distinct images.
+  const activeRawFilter = customResult ? "none" : activePreset.rawFilter;
+  const activeRestoredFilter = customResult ? "none" : activePreset.restoredFilter;
 
-  // Handle custom file upload and call backend
-  const handleUploadFile = async (file: File) => {
+  // Run the real agent pipeline (restoration -> YOLO -> Gemini reasoning) against
+  // whichever bytes are given - a user upload or a sample scenario's photo.
+  const runAnalysis = async (file: File, label: string) => {
     setIsAnalyzing(true);
     setAnalysisError(null);
-    setCustomFileName(file.name);
     setCurrentView("studio");
 
     try {
       const res = await analyzeFrame(file);
       setCustomResult(res);
-      setSelectedPresetId("");
     } catch (err) {
-      console.warn("API upload fallback:", err);
-      const mockResult: AnalyzeResponse = {
-        ...activePreset.analysis,
-        scene: {
-          ...activePreset.analysis.scene,
-          summary: `Uploaded frame: ${file.name}. Processed with dynamic OpenCV restoration & zone reasoning.`,
-        },
-      };
-      setCustomResult(mockResult);
+      console.warn("Agent analysis failed:", err);
+      setCustomResult(null);
       setAnalysisError(
         err instanceof Error
-          ? `Edge fallback active: ${err.message}`
-          : "Analysis completed via edge agent pipeline."
+          ? `Analysis failed: ${err.message}`
+          : "Analysis failed: the agent backend is unreachable."
       );
     } finally {
       setIsAnalyzing(false);
     }
+  };
+
+  const handleUploadFile = async (file: File) => {
+    setCustomFileName(file.name);
+    await runAnalysis(file, file.name);
+  };
+
+  const handleAnalyzePreset = async () => {
+    setCustomFileName(null);
+    const file = await urlToFile(activePreset.photoUrl, `${activePreset.id}.jpg`);
+    await runAnalysis(file, activePreset.title);
   };
 
   const handleSelectPreset = (presetId: string) => {
@@ -169,6 +179,7 @@ export default function App() {
               onOpenExport={() => setIsExportOpen(true)}
               onReset={handleReset}
               customFileName={customFileName}
+              canExport={!!activeAnalysis}
             />
 
             {/* Error / Offline Toast Banner if any */}
@@ -209,8 +220,10 @@ export default function App() {
                     annotatedImage={activeAnnotatedImage}
                     rawImage={activeRawImage}
                     restoredImage={activeRestoredImage}
-                    detections={activeAnalysis.detections}
-                    violations={activeAnalysis.violations}
+                    rawFilter={activeRawFilter}
+                    restoredFilter={activeRestoredFilter}
+                    detections={activeAnalysis?.detections ?? []}
+                    violations={activeAnalysis?.violations ?? []}
                     cameraName={customFileName || activePreset.camera}
                     conditionLabel={activePreset.condition}
                     highlightedDetectionId={highlightedDetectionId}
@@ -218,23 +231,47 @@ export default function App() {
                   />
 
                   {/* Latency & Step DAG below the video */}
-                  <AgentPipelineDAG steps={activeAnalysis.steps} />
+                  {activeAnalysis && <AgentPipelineDAG steps={activeAnalysis.steps} />}
                 </div>
 
                 {/* Right Column: Telemetry, Violations, and Tools (5 Cols) */}
                 <div className="lg:col-span-5 space-y-6">
-                  {/* Scene Understanding Card */}
-                  <SceneConditionCard scene={activeAnalysis.scene} />
+                  {activeAnalysis ? (
+                    <>
+                      {/* Scene Understanding Card */}
+                      <SceneConditionCard scene={activeAnalysis.scene} />
 
-                  {/* Violations Inspector with direct highlight trigger */}
-                  <ViolationsInspector
-                    violations={activeAnalysis.violations}
-                    highlightedDetectionId={highlightedDetectionId}
-                    onSelectViolation={setHighlightedDetectionId}
-                  />
+                      {/* Violations Inspector with direct highlight trigger */}
+                      <ViolationsInspector
+                        violations={activeAnalysis.violations}
+                        highlightedDetectionId={highlightedDetectionId}
+                        onSelectViolation={setHighlightedDetectionId}
+                      />
 
-                  {/* Tools Engaged Card */}
-                  <ToolsEngagedCard plan={activeAnalysis.plan} />
+                      {/* Tools Engaged Card */}
+                      <ToolsEngagedCard plan={activeAnalysis.plan} />
+                    </>
+                  ) : (
+                    <div className="border border-hermes-ink/15 bg-white p-6 shadow-lift space-y-4 font-mono text-center">
+                      <Sparkles className="h-8 w-8 text-hermes-blue mx-auto" />
+                      <div>
+                        <h3 className="hermes-title text-lg font-bold text-hermes-ink uppercase">
+                          Frame Not Yet Analyzed
+                        </h3>
+                        <p className="text-xs text-hermes-charcoal mt-1 font-body leading-relaxed">
+                          This is the raw sample photo for &ldquo;{activePreset.title}&rdquo;. Run the live agent to
+                          restore the frame, localize people with YOLOv8n, and reason about safety violations.
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleAnalyzePreset}
+                        className="hermes-btn-primary bg-hermes-blue text-white hover:bg-hermes-dark text-xs w-full flex items-center justify-center gap-2"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        <span>Run Agent Analysis</span>
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -280,12 +317,14 @@ export default function App() {
         isLoading={isAnalyzing}
       />
 
-      <ExportReportModal
-        isOpen={isExportOpen}
-        onClose={() => setIsExportOpen(false)}
-        analysis={activeAnalysis}
-        scenarioTitle={customFileName || activePreset.title}
-      />
+      {activeAnalysis && (
+        <ExportReportModal
+          isOpen={isExportOpen}
+          onClose={() => setIsExportOpen(false)}
+          analysis={activeAnalysis}
+          scenarioTitle={customFileName || activePreset.title}
+        />
+      )}
 
       {/* Global Footer (Hermes Cobalt) */}
       <Footer

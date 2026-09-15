@@ -61,23 +61,26 @@ def run_pipeline(image_bytes: bytes, media_type: str) -> AnalyzeResponse:
     else:
         steps.append(PipelineStep(name="Restoration", status="skipped", detail="Frame conditions did not warrant restoration", duration_ms=0))
 
-    persons = []
+    detections = []
     if "person_detection" in plan.detection_tools:
         t0 = time.perf_counter()
-        persons = detection.person_detection(working_img)
+        detections = detection.person_detection(working_img)
+        n_people = sum(1 for d in detections if d.label == "person")
+        n_vehicles = len(detections) - n_people
         steps.append(
             PipelineStep(
-                name="Person detection",
+                name="Object detection",
                 status="completed",
-                detail=f"{len(persons)} person(s) detected",
+                detail=f"{n_people} person(s), {n_vehicles} vehicle(s) detected",
                 duration_ms=int((time.perf_counter() - t0) * 1000),
             )
         )
     else:
-        steps.append(PipelineStep(name="Person detection", status="skipped", detail="No human presence expected", duration_ms=0))
+        steps.append(PipelineStep(name="Object detection", status="skipped", detail="No human/vehicle presence expected", duration_ms=0))
 
     check_ppe = "ppe_reasoning" in plan.detection_tools
     check_zones = "zone_reasoning" in plan.detection_tools
+    persons = detection.people_only(detections)
     violations = []
     if check_ppe or check_zones:
         t0 = time.perf_counter()
@@ -95,7 +98,7 @@ def run_pipeline(image_bytes: bytes, media_type: str) -> AnalyzeResponse:
     else:
         steps.append(PipelineStep(name="Violation reasoning", status="skipped", detail="No PPE/zone checks selected", duration_ms=0))
 
-    annotated = _annotate(working_img, persons, violations)
+    annotated = _annotate(working_img, detections, violations)
     ok, encoded = cv2.imencode(".jpg", annotated)
     annotated_b64 = base64.standard_b64encode(encoded.tobytes()).decode("utf-8") if ok else ""
 
@@ -103,13 +106,16 @@ def run_pipeline(image_bytes: bytes, media_type: str) -> AnalyzeResponse:
         scene=scene,
         plan=plan,
         steps=steps,
-        detections=persons,
+        detections=detections,
         violations=violations,
         annotated_image=f"data:image/jpeg;base64,{annotated_b64}",
     )
 
 
-def _annotate(img: np.ndarray, persons: list, violations: list) -> np.ndarray:
+VEHICLE_COLOR = (200, 140, 0)  # BGR cyan-ish blue, distinct from person severity colors
+
+
+def _annotate(img: np.ndarray, detections: list, violations: list) -> np.ndarray:
     out = img.copy()
     flagged_ids = {vid for v in violations for vid in v.related_detection_ids}
     violation_by_detection: dict[str, str] = {}
@@ -117,12 +123,15 @@ def _annotate(img: np.ndarray, persons: list, violations: list) -> np.ndarray:
         for did in v.related_detection_ids:
             violation_by_detection[did] = v.severity
 
-    for p in persons:
-        x, y, w, h = int(p.box.x), int(p.box.y), int(p.box.width), int(p.box.height)
-        severity = violation_by_detection.get(p.id)
-        color = SEVERITY_COLOR.get(severity, OK_COLOR) if p.id in flagged_ids else OK_COLOR
+    for d in detections:
+        x, y, w, h = int(d.box.x), int(d.box.y), int(d.box.width), int(d.box.height)
+        if d.label == "person":
+            severity = violation_by_detection.get(d.id)
+            color = SEVERITY_COLOR.get(severity, OK_COLOR) if d.id in flagged_ids else OK_COLOR
+        else:
+            color = VEHICLE_COLOR
         cv2.rectangle(out, (x, y), (x + w, y + h), color, 2)
-        label = f"{p.label} {p.confidence:.2f}"
+        label = f"{d.label} {d.confidence:.2f}"
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
         cv2.rectangle(out, (x, max(0, y - th - 8)), (x + tw + 6, y), color, -1)
         cv2.putText(out, label, (x + 3, max(12, y - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
