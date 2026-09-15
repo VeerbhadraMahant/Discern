@@ -18,6 +18,13 @@ export default function Footer({ onLaunch }: { onLaunch: () => void }) {
             <p className="max-w-md text-xs text-white/80 leading-relaxed font-body">
               Open-source adaptive vision agent for harsh industrial sites. Classical OpenCV restoration + YOLOv8n + Gemini Multimodal Vision Reasoning.
             </p>
+            <p className="max-w-md text-[11px] text-white/60 leading-relaxed font-body">
+              Architecture follows the restore-then-detect agentic loop from{" "}
+              <span className="text-white/80">"Detect in Any Scene" (DetAS, Zhang et al., 2026)</span>. Benchmark
+              imagery sampled from{" "}
+              <span className="text-white/80">HazyDet (Feng et al., 2024)</span> and other public detection datasets
+              referenced in that paper.
+            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
