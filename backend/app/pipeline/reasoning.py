@@ -1,44 +1,33 @@
-import base64
 import uuid
+from typing import Literal
 
-from anthropic import Anthropic
+from google import genai
+from google.genai import types
+from pydantic import BaseModel
 
-from app.config import ANTHROPIC_API_KEY, CLAUDE_MODEL
+from app.config import GEMINI_API_KEY, GEMINI_MODEL
 from app.schemas import Detection, SceneContext, Violation
 
-_client: Anthropic | None = None
-
-VIOLATION_TOOL = {
-    "name": "report_violations",
-    "description": "Report safety violations found by inspecting the frame and the detected people.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "violations": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "type": {"type": "string", "enum": ["missing_ppe", "restricted_zone", "unsafe_proximity"]},
-                        "severity": {"type": "string", "enum": ["critical", "warning", "info"]},
-                        "description": {"type": "string"},
-                        "related_detection_ids": {"type": "array", "items": {"type": "string"}},
-                    },
-                    "required": ["type", "severity", "description", "related_detection_ids"],
-                },
-            }
-        },
-        "required": ["violations"],
-    },
-}
+_client: genai.Client | None = None
 
 
-def _get_client() -> Anthropic:
+class ViolationItem(BaseModel):
+    type: Literal["missing_ppe", "restricted_zone", "unsafe_proximity"]
+    severity: Literal["critical", "warning", "info"]
+    description: str
+    related_detection_ids: list[str]
+
+
+class ViolationsResponse(BaseModel):
+    violations: list[ViolationItem]
+
+
+def _get_client() -> genai.Client:
     global _client
     if _client is None:
-        if not ANTHROPIC_API_KEY:
-            raise RuntimeError("ANTHROPIC_API_KEY is not set. Add it to backend/.env")
-        _client = Anthropic(api_key=ANTHROPIC_API_KEY)
+        if not GEMINI_API_KEY:
+            raise RuntimeError("GEMINI_API_KEY is not set. Add it to backend/.env")
+        _client = genai.Client(api_key=GEMINI_API_KEY)
     return _client
 
 
@@ -54,7 +43,6 @@ def assess_violations(
         return []
 
     client = _get_client()
-    b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
 
     person_lines = "\n".join(
         f"- id={p.id}, box(x,y,w,h)=({p.box.x:.0f},{p.box.y:.0f},{p.box.width:.0f},{p.box.height:.0f})"
@@ -66,32 +54,26 @@ def assess_violations(
     if check_zones:
         checks.append("- Restricted/danger zones: is any person inside a hazard zone (directly beside/under machinery, on an unguarded edge, inside an excavation)? Flag restricted_zone. If a person is close enough to moving/active machinery to be struck, flag unsafe_proximity instead.")
 
-    message = client.messages.create(
-        model=CLAUDE_MODEL,
-        max_tokens=1024,
-        tools=[VIOLATION_TOOL],
-        tool_choice={"type": "tool", "name": "report_violations"},
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {"type": "image", "source": {"type": "base64", "media_type": media_type, "data": b64}},
-                    {
-                        "type": "text",
-                        "text": (
-                            f"Scene: {scene.summary} (setting={scene.setting}, lighting={scene.lighting}, "
-                            f"weather={scene.weather}, visibility={scene.visibility}).\n\n"
-                            f"Detected people (pixel coordinates, origin top-left):\n{person_lines}\n\n"
-                            "Checks to perform:\n" + "\n".join(checks) + "\n\n"
-                            "Only report violations you can actually see evidence for. Reference person ids in "
-                            "related_detection_ids. If nothing is wrong, report an empty list."
-                        ),
-                    },
-                ],
-            }
-        ],
+    prompt = (
+        f"Scene: {scene.summary} (setting={scene.setting}, lighting={scene.lighting}, "
+        f"weather={scene.weather}, visibility={scene.visibility}).\n\n"
+        f"Detected people (pixel coordinates, origin top-left):\n{person_lines}\n\n"
+        "Checks to perform:\n" + "\n".join(checks) + "\n\n"
+        "Only report violations you can actually see evidence for. Reference person ids in "
+        "related_detection_ids. If nothing is wrong, return an empty violations list."
     )
 
-    tool_use = next(b for b in message.content if b.type == "tool_use")
-    raw = tool_use.input["violations"]
-    return [Violation(id=f"violation_{uuid.uuid4().hex[:8]}", **v) for v in raw]
+    response = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type=media_type),
+            prompt,
+        ],
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=ViolationsResponse,
+        ),
+    )
+
+    result: ViolationsResponse = response.parsed or ViolationsResponse.model_validate_json(response.text)
+    return [Violation(id=f"violation_{uuid.uuid4().hex[:8]}", **v.model_dump()) for v in result.violations]

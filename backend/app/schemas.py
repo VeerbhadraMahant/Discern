@@ -13,8 +13,8 @@ class SceneContext(BaseModel):
 
 
 class ToolPlan(BaseModel):
-    restoration_tools: list[str]
-    detection_tools: list[str]
+    restoration_tools: list[Literal["low_light_enhancement", "dehaze", "denoise"]]
+    detection_tools: list[Literal["person_detection", "ppe_reasoning", "zone_reasoning"]]
     reasoning: str
 
 
