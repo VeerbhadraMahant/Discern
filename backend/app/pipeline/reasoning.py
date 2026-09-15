@@ -6,6 +6,7 @@ from google.genai import types
 from pydantic import BaseModel
 
 from app.config import GEMINI_API_KEY, GEMINI_MODEL
+from app.pipeline.retry import call_with_retry
 from app.schemas import Detection, SceneContext, Violation
 
 _client: genai.Client | None = None
@@ -63,7 +64,8 @@ def assess_violations(
         "related_detection_ids. If nothing is wrong, return an empty violations list."
     )
 
-    response = client.models.generate_content(
+    response = call_with_retry(
+        client.models.generate_content,
         model=GEMINI_MODEL,
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=media_type),

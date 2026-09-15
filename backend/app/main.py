@@ -1,6 +1,7 @@
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
+from google.genai import errors as genai_errors
 
 from app.pipeline.agent import run_pipeline
 from app.schemas import AnalyzeResponse
@@ -38,3 +39,14 @@ async def analyze(file: UploadFile = File(...)):
         return await run_in_threadpool(run_pipeline, image_bytes, content_type)
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
+    except genai_errors.ClientError as e:
+        if e.code == 429:
+            raise HTTPException(
+                status_code=429,
+                detail=(
+                    "Gemini API quota exhausted (free tier allows a limited number of requests "
+                    "per day for this model). Wait for the quota to reset, switch GEMINI_MODEL in "
+                    "backend/.env to a model with more quota, or upgrade the API key's billing plan."
+                ),
+            )
+        raise HTTPException(status_code=502, detail=f"Gemini rejected the request: {e}")

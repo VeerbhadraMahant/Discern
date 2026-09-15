@@ -3,6 +3,7 @@ from google.genai import types
 from pydantic import BaseModel
 
 from app.config import GEMINI_API_KEY, GEMINI_MODEL
+from app.pipeline.retry import call_with_retry
 from app.schemas import SceneContext, ToolPlan
 
 _client: genai.Client | None = None
@@ -49,7 +50,8 @@ def classify_and_plan(image_bytes: bytes, media_type: str) -> tuple[SceneContext
         "only contain values from the catalog keys.\n\n" + catalog_desc
     )
 
-    response = client.models.generate_content(
+    response = call_with_retry(
+        client.models.generate_content,
         model=GEMINI_MODEL,
         contents=[
             types.Part.from_bytes(data=image_bytes, mime_type=media_type),
