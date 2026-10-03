@@ -56,6 +56,8 @@ def main(detectors: list[str]) -> list[EvalResult]:
         for dataset in DATASETS:
             gate, harvest = load_dataset(dataset, "gate"), load_dataset(dataset, "harvest")
             targets = dataset_targets(gate + harvest)
+            if entry.role == "agent_vlm":  # constant score: skip the slow threshold-tuning pass
+                harvest = []
             cache = partial(_cache, name, dataset, entry.revision)
             gate_dets = detect_all(detector, gate, targets, cache("gate"))
             harvest_dets = detect_all(detector, harvest, targets, cache("harvest"))
