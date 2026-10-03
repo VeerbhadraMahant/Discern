@@ -1,7 +1,9 @@
 """Role interfaces. Adapters wrap concrete models behind these; agent code only sees roles.
 
-Images are HxWx3 uint8 numpy arrays. Boxes returned by detectors are absolute pixel xyxy in
-the coordinate space of the image passed in; adapters convert at their boundary.
+Images are HxWx3 uint8 numpy arrays in RGB order. Boxes returned by detectors are absolute
+pixel xyxy in the coordinate space of the image passed in; adapters convert at their boundary.
+Detectors return every detection scoring at least SCORE_FLOOR; callers apply the operating
+threshold, so one cached run can be evaluated at many thresholds.
 """
 
 from collections.abc import Sequence
@@ -12,6 +14,8 @@ import numpy.typing as npt
 from pydantic import BaseModel, ConfigDict
 
 from discern.vision.boxes import Box
+
+SCORE_FLOOR = 0.05
 
 Image = npt.NDArray[np.uint8]
 Embeddings = npt.NDArray[np.float32]

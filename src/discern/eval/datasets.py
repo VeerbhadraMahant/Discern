@@ -89,3 +89,44 @@ def load_dataset(
         for a in items
         if split is None or a.split == split
     ]
+
+
+def coco_to_annotated(
+    coco: Mapping[str, Any],
+    image_dir: Path,
+    label_map: Mapping[str, str],
+    scene_label: str,
+    id_prefix: str = "",
+) -> list[AnnotatedImage]:
+    """Convert a COCO-format dict (absolute xywh boxes). Categories missing from
+    `label_map` are dropped, and images left without objects are skipped."""
+    names = {c["id"]: c["name"] for c in coco["categories"]}
+    objects: dict[int, list[GroundTruthBox]] = {}
+    for ann in coco["annotations"]:
+        label = label_map.get(names[ann["category_id"]])
+        if label is None:
+            continue
+        x, y, w, h = ann["bbox"]
+        objects.setdefault(ann["image_id"], []).append(
+            GroundTruthBox(box=Box(x, y, x + w, y + h), label=label)
+        )
+    return [
+        AnnotatedImage(
+            image_id=f"{id_prefix}{Path(img['file_name']).stem}",
+            path=image_dir / Path(img["file_name"]).name,
+            width=img["width"],
+            height=img["height"],
+            objects=tuple(objects[img["id"]]),
+            scene_label=scene_label,
+        )
+        for img in coco["images"]
+        if img["id"] in objects
+    ]
+
+
+def parse_darkface_label(text: str) -> tuple[GroundTruthBox, ...]:
+    """DarkFace label file: a count line, then `x1 y1 x2 y2` (absolute pixels) per face."""
+    lines = [ln.split() for ln in text.strip().splitlines()[1:] if ln.strip()]
+    return tuple(
+        GroundTruthBox(box=Box(*(float(v) for v in parts[:4])), label="face") for parts in lines
+    )
