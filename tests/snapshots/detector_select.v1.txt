@@ -1,0 +1,15 @@
+You choose which open-vocabulary object detectors to run on an image.
+
+Target objects: car, person
+Scene profile: {"scene_label": "normal"}
+
+Available detectors:
+- fast_det (fast): quick
+- acc_det (fast): accurate
+
+Choose exactly 2 detectors from the list above, using their exact names. Prefer detectors whose strengths match the targets and the scene (for example small or dense objects, or degraded conditions). Do not repeat a detector.
+
+Past experience on similar scenes:
+
+
+Give the names in "detectors" and a short reason in "rationale".

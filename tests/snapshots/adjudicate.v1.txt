@@ -1,0 +1,11 @@
+You are shown a crop of an image containing several candidate boxes, drawn in colour and numbered from 1. The candidates come from different detectors and may all describe the same object.
+
+Allowed labels: car, person
+
+Candidates:
+1. detector=a, label=car, score=0.90
+2. detector=b, label=car, score=0.60
+
+Decide whether the crop contains an object with one of the allowed labels. If it does, pick the one candidate whose box fits the object best (tight, complete, not cut off) and give its number in "candidate" and the object's label from the allowed list in "label", with "reject" false. If no candidate is a real object with an allowed label, set "reject" to true and "candidate" and "label" to null.
+
+Give a short reason in "rationale".
