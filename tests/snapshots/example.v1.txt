@@ -1,0 +1,1 @@
+Scene is fog. Pick one of: A, B.
