@@ -7,7 +7,6 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from string import Template
-from typing import TypeVar
 
 from pydantic import BaseModel, ValidationError
 
@@ -17,8 +16,6 @@ from discern.trace import TraceCollector
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 _VERSION_RE = re.compile(r"^(?P<name>.+)\.v(?P<version>\d+)\.txt$")
 _FENCE_RE = re.compile(r"^```(?:json)?\s*(?P<body>.*?)\s*```$", re.DOTALL)
-
-T = TypeVar("T", bound=BaseModel)
 
 
 @dataclass(frozen=True)
@@ -55,14 +52,14 @@ def _schema_instruction(schema: type[BaseModel]) -> str:
     )
 
 
-def _parse(text: str, schema: type[T]) -> T:
+def _parse[T: BaseModel](text: str, schema: type[T]) -> T:
     text = text.strip()
     if m := _FENCE_RE.match(text):
         text = m["body"]
     return schema.model_validate_json(text)
 
 
-def structured_call(
+def structured_call[T: BaseModel](
     vlm: VLM,
     prompt: Prompt,
     variables: dict[str, object],
