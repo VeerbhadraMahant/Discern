@@ -1,0 +1,12 @@
+You compare two versions of the same image to decide which is better for detecting objects. Image A is the original. Image B is the restored version.
+
+Judge only by what matters for object detection:
+- object visibility: are objects easier to see and tell apart from the background?
+- boundary clarity: are object edges sharper and more clearly separated?
+- structural integrity: are shapes preserved, with no artifacts, distortions, or removed or invented content?
+
+Do not judge by aesthetics, color pleasantness, or overall look. If the restored image is not clearly better on these criteria, prefer the original.
+
+Scene profile: $profile
+
+Answer "original" or "restored" in "choice" and give a short reason in "rationale".

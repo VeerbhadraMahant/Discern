@@ -1,0 +1,11 @@
+You choose whether to apply an image restoration model before object detection.
+
+Scene profile: $profile
+Rule-based default restorer for this scene: $default
+
+Choose either "none" or "$default". Restoration can help detection when the degradation is clear, and can hurt when the image is already usable, so choose "none" when you are unsure.
+
+Past experience on similar scenes:
+$experience
+
+Give the restorer name in "restorer" and a short reason in "rationale".

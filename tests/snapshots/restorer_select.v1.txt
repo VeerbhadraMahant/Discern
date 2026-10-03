@@ -1,0 +1,11 @@
+You choose whether to apply an image restoration model before object detection.
+
+Scene profile: {"scene_label": "fog"}
+Rule-based default restorer for this scene: dehaze
+
+Choose either "none" or "dehaze". Restoration can help detection when the degradation is clear, and can hurt when the image is already usable, so choose "none" when you are unsure.
+
+Past experience on similar scenes:
+Similar scenes (3): dehaze F1 0.52 (n=14) vs none 0.47 (n=14)
+
+Give the restorer name in "restorer" and a short reason in "rationale".
