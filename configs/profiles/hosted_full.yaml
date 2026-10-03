@@ -4,6 +4,8 @@ max_video_seconds: 60
 max_long_side_px: 1280      # 720p working copy
 sample_fps: 5.0
 models:
-  agent_vlm: qwen3-vl-8b
+  agent_vlm: qwen3-vl-8b-bf16
   detector_fast: yolo-world-v2
-  detector_accurate: grounding-dino
+  detector_accurate: grounding-dino-base
+  detector_dense: rex-omni
+  embedder: siglip2-base

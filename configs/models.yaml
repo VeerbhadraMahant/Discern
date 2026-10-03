@@ -1,0 +1,114 @@
+# Model registry. One entry per (model, precision). Profiles pick entries by name.
+# revision: HF commit sha, or GitHub commit sha / release tag for non-HF assets.
+# vram_gb is approximate (weights plus a margin); replace with measured values in Milestone 1.
+# Verified 2026-10-03 against the HF API, GitHub API and upstream license files.
+qwen3-vl-8b-bf16:
+  role: agent_vlm
+  model_id: Qwen/Qwen3-VL-8B-Instruct
+  revision: 0c351dd01ed87e9c1b53cbc748cba10e6187ff3b
+  license: Apache-2.0
+  speed_class: slow
+  adapter: discern.models.adapters.qwen3_vl.Qwen3VLAdapter
+  vram_gb: 19.0
+qwen3-vl-4b-4bit:
+  # 4B in bf16 is about 8.9GB of weights and does not fit the 8GB local GPU; 4-bit does.
+  role: agent_vlm
+  model_id: Qwen/Qwen3-VL-4B-Instruct
+  revision: ebb281ec70b05090aa6165b016eac8ec08e71b17
+  license: Apache-2.0
+  speed_class: slow
+  adapter: discern.models.adapters.qwen3_vl.Qwen3VLAdapter
+  vram_gb: 3.5
+yolo-world-v2:
+  role: detector_fast
+  model_id: yolov8s-worldv2.pt
+  revision: ultralytics/assets v8.3.0
+  license: AGPL-3.0
+  speed_class: fast
+  adapter: discern.models.adapters.yolo_world.YoloWorldAdapter
+  vram_gb: 0.6
+grounding-dino-base:
+  role: detector_accurate
+  model_id: IDEA-Research/grounding-dino-base
+  revision: 12bdfa3120f3e7ec7b434d90674b3396eccf88eb
+  license: Apache-2.0
+  speed_class: fast
+  adapter: discern.models.adapters.grounding_dino.GroundingDinoAdapter
+  vram_gb: 1.5
+owlv2-base:
+  role: detector_accurate
+  model_id: google/owlv2-base-patch16-ensemble
+  revision: cfd3195ba4ea9592eec887ded089f4c08eff231d
+  license: Apache-2.0
+  speed_class: fast
+  adapter: discern.models.adapters.owlv2.Owlv2Adapter
+  vram_gb: 1.2
+rex-omni:
+  # IDEA License 1.0: non-commercial research use only. Optional; hosted_full only.
+  role: detector_dense
+  model_id: IDEA-Research/Rex-Omni
+  revision: 0e5693d24657f6c0e091008dd6809bb1bd28988c
+  license: IDEA-License-1.0 (non-commercial research)
+  speed_class: slow
+  adapter: discern.models.adapters.rex_omni.RexOmniAdapter
+  vram_gb: 9.0
+siglip2-base:
+  role: embedder
+  model_id: google/siglip2-base-patch16-224
+  revision: 75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2
+  license: Apache-2.0
+  speed_class: fast
+  adapter: discern.models.adapters.siglip2.Siglip2Adapter
+  vram_gb: 1.8
+ridcp:
+  # CC BY-NC 4.0: non-commercial only. Free public demo is non-commercial; keep attribution.
+  role: restorer_dehaze
+  model_id: github:RQ-Wu/RIDCP_dehazing
+  revision: 23c9b046fdd3c2a70df342d105dea07769c441e2
+  license: CC-BY-NC-4.0
+  speed_class: fast
+  adapter: discern.models.adapters.ridcp.RidcpAdapter
+  vram_gb: 1.5
+mprnet-derain:
+  # Academic Public License: non-commercial only, same-license on distribution.
+  role: restorer_derain
+  model_id: github:swz30/MPRNet
+  revision: 43feb2aed45f5e0b9082c78c8c455160e30a3a82
+  license: Academic-Public-License (non-commercial)
+  speed_class: fast
+  adapter: discern.models.adapters.mprnet.MprnetAdapter
+  vram_gb: 2.0
+swinir-denoise:
+  role: restorer_denoise
+  model_id: github:JingyunLiang/SwinIR
+  revision: 6545850fbf8df298df73d81f3e8cba638787c8bd
+  license: Apache-2.0
+  speed_class: fast
+  adapter: discern.models.adapters.swinir.SwinirAdapter
+  vram_gb: 1.5
+llflow-lowlight:
+  # CC BY-NC-SA 4.0, academic research use only. Not planned for the public Space.
+  role: restorer_lowlight
+  model_id: github:wyf0912/LLFlow
+  revision: 115da161a96de868d67494a32db848e31f85bbc1
+  license: CC-BY-NC-SA-4.0 (academic research only)
+  speed_class: slow
+  adapter: discern.models.adapters.llflow.LlflowAdapter
+  vram_gb: 2.0
+zero-dce-pp:
+  # CC BY-NC 4.0 (academic research purpose). Lightweight low-light option for video.
+  role: restorer_lowlight
+  model_id: github:Li-Chongyi/Zero-DCE_extension
+  revision: 09f202b690f82da939b8e6ec8535960ae97ad8bd
+  license: CC-BY-NC-4.0
+  speed_class: fast
+  adapter: discern.models.adapters.zero_dce.ZeroDcePpAdapter
+  vram_gb: 0.3
+real-esrgan-x4plus:
+  role: super_resolver
+  model_id: github:xinntao/Real-ESRGAN (RealESRGAN_x4plus.pth)
+  revision: a4abfb2979a7bbff3f69f58f58ae324608821e27
+  license: BSD-3-Clause
+  speed_class: slow
+  adapter: discern.models.adapters.real_esrgan.RealEsrganAdapter
+  vram_gb: 2.0
