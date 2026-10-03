@@ -1,14 +1,34 @@
-claude.md
+# Local-only planning docs
+Claude.md
+CLAUDE.md
+discern-plan.md
+system-design.md
+docs/paper/
 
-# backend
-backend/venv/
-backend/__pycache__/
-backend/**/__pycache__/
-backend/.env
-backend/data/
+# Claude Code local state
+.claude/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+
+# Experiment tracking, data, weights, media
+mlruns/
+data/
+weights/
+sessions/
 *.pt
-
-# frontend
-frontend/node_modules/
-frontend/dist/
-frontend/*.tsbuildinfo
+*.pth
+*.safetensors
+*.onnx
+*.ckpt
