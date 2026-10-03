@@ -19,6 +19,7 @@ gpu = [
     "ultralytics>=8.3.0",
     "pillow>=10.0",
     "accelerate>=1.0",
+    "bitsandbytes>=0.45",
 ]
 eval = [
     "mlflow>=3.0",
