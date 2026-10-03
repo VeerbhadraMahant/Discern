@@ -30,8 +30,8 @@ class Owlv2Adapter:
         outputs = self._model(**inputs)
         # OWLv2 pads to a square, so boxes are relative to the padded side.
         side = max(h, w)
-        result = self._processor.post_process_object_detection(
-            outputs, threshold=SCORE_FLOOR, target_sizes=torch.tensor([[side, side]])
+        result = self._processor.post_process_grounded_object_detection(
+            outputs, threshold=SCORE_FLOOR, target_sizes=[(side, side)]
         )[0]
         return [
             Detection(

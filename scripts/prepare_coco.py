@@ -27,7 +27,9 @@ def fetch(url: str, dst: Path, attempts: int = 4) -> None:
     for attempt in range(attempts):
         try:
             with urllib.request.urlopen(url, timeout=30) as r:
-                dst.write_bytes(r.read())
+                tmp = dst.with_suffix(".part")
+                tmp.write_bytes(r.read())
+                tmp.replace(dst)
             return
         except OSError:
             if attempt == attempts - 1:
