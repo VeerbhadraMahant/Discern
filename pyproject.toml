@@ -11,6 +11,20 @@ dependencies = [
 ]
 
 [dependency-groups]
+# Heavy runtime deps. Not installed in CI: `uv sync --group gpu --group eval` locally.
+gpu = [
+    "torch>=2.8",
+    "torchvision>=0.23",
+    "transformers>=4.57",
+    "ultralytics>=8.3.0",
+    "pillow>=10.0",
+    "accelerate>=1.0",
+]
+eval = [
+    "mlflow>=3.0",
+    "huggingface-hub>=0.25",
+    "pycocotools>=2.0.8",
+]
 dev = [
     "mypy>=1.10",
     "pre-commit>=3.7",
@@ -18,6 +32,15 @@ dev = [
     "ruff>=0.5",
     "types-pyyaml>=6.0",
 ]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
+torchvision = [{ index = "pytorch-cu128", marker = "sys_platform == 'win32' or sys_platform == 'linux'" }]
 
 [build-system]
 requires = ["hatchling"]

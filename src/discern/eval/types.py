@@ -1,6 +1,7 @@
 """Common annotation format shared by every dataset loader."""
 
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -23,3 +24,4 @@ class AnnotatedImage(BaseModel):
     height: int
     objects: tuple[GroundTruthBox, ...]
     scene_label: str | None = None  # dataset-implied condition: fog, low_light, rain, normal, ...
+    split: Literal["gate", "harvest"] = "gate"  # gate: fixed eval subset; harvest: SEEH pool
