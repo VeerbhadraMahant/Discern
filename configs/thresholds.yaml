@@ -7,6 +7,68 @@ grouping:
 agent:
   top_k_detectors: 2
   sr_target_long_side: 2048   # "2K" super-resolution target
+  fallback_accept_score: 0.3  # adjudicate fallback: accept the anchor at or above this score
 experience:
   top_k_profiles: 3
   harvest_samples_per_dataset: 50
+  confirm_top_configs: 3       # harvest: configurations per image re-scored with full adjudication
+  similarity_weights:          # design choice, not a paper value: profile similarity attribute weights
+    illumination: 1.0
+    visibility: 1.0
+    object_scale: 0.5
+    object_density: 0.5
+video:
+  min_shot_seconds: 1.0        # shots shorter than this are merged into the previous shot
+  cut_threshold: 27.0          # PySceneDetect ContentDetector default
+  track_activation_score: 0.25 # ByteTrack high-confidence split (supervision default)
+  track_lost_seconds: 2.0      # a track survives this long without a matching box
+  reid_cosine: 0.8             # embedding cosine at or above which two tracks are one object
+  reid_max_gap_seconds: 2.0    # longest time gap bridged by re-identification
+index:
+  smoothing_seconds: 2.0       # frame similarities are averaged over this window; also the segment length
+  top_segments: 3              # retrieved segments per query
+query:
+  time_tolerance_seconds: 0.5  # verifier: a time in answer text must be within this of a computed time
+  near_ratio: 1.0              # near: box centre distance at most this times the mean box diagonal
+  direction_ratio: 0.5         # left_of, above, ...: centre offset at least this times the mean box size
+  overlap_ratio: 0.1           # overlapping: intersection area over the smaller box area
+  region_min_fraction: 0.5     # filter by region: share of a track's frames with its centre in the region
+degrade:                       # [severity 0, severity 1]; severity 0 leaves a frame unchanged
+  fog_beta: [0.0, 3.0]         # transmission t = exp(-beta * depth), depth normalised to 0..1
+  fog_airlight: [0.85, 0.85]   # atmospheric light A as a fraction of full scale
+  low_light_gamma: [1.0, 2.5]
+  low_light_scale: [1.0, 0.3]
+  low_light_peak: [255.0, 25.0]  # shot noise: lower peak is noisier
+  rain_density: [0.0, 0.004]   # streaks per pixel
+  rain_length: [0.04, 0.12]    # fraction of frame height
+  rain_brightness: [0.0, 0.6]
+  rain_angle_degrees: 10.0     # tilt from vertical
+  rain_fall_fraction: 0.08     # per-frame streak fall as a fraction of frame height
+  noise_sigma: [0.0, 30.0]     # gaussian, 8-bit levels
+  noise_peak: [255.0, 40.0]    # poisson: lower peak is noisier
+# Gate (system-design 10.3). PLACEHOLDERS, deliberately permissive so the gate passes until
+# real numbers exist: to be set from baseline numbers once the GPU gate subset has been run.
+eval_gate:
+  experiment: m8-gate          # MLflow experiment the gate reads (latest finished run)
+  tolerance: 0.05              # relative slack on every threshold
+  minimums:                    # higher is better; to be set from baseline numbers
+    count_accuracy: 0.0
+    temporal_iou: 0.0
+    box_f1: 0.0
+    verifier_pass_rate: 0.0
+  maximums:                    # lower is better; to be set from baseline numbers
+    count_mae: 1000.0
+    gpu_seconds_per_video_second: 1000.0
+serve:
+  ttl_seconds: 3600            # session directories (uploads, traces) are deleted this long after last use
+  max_upload_mb: 50            # largest accepted upload
+  max_queries_per_session: 20  # questions per uploaded video
+  cleanup_interval_seconds: 300  # expired sessions are swept this often
+  gpu_seconds:                 # PLACEHOLDERS: ZeroGPU duration per call, to be set from measured timings
+    clean_image: 60
+    detect: 60
+    ingest: 120
+    index: 120
+    ask: 120
+monitor:
+  drift_similarity: 0.8        # an upload drifts when its best profile similarity to the memory is below this

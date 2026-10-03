@@ -25,6 +25,7 @@ class RegistryEntry(BaseModel):
     speed_class: Literal["fast", "slow"] = "fast"
     adapter: str  # dotted path of the adapter class that wraps the model
     vram_gb: float  # approximate VRAM at this entry's precision; one entry per precision
+    quantize_4bit: bool = False  # adapters load 4-bit (nf4) weights when set, else bf16
 
 
 class ModelTooLargeError(RuntimeError):

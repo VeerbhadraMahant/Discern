@@ -13,10 +13,11 @@ from discern.vision.boxes import Box, clip
 def _match_target(phrase: str, targets: Sequence[str]) -> str | None:
     """Grounding DINO returns text spans; map one back to a requested target."""
     phrase = phrase.strip().lower()
-    if phrase in targets:
-        return phrase
     for t in targets:
-        if re.search(rf"\b{re.escape(t)}\b", phrase):
+        if phrase == t.lower():
+            return t
+    for t in targets:
+        if re.search(rf"\b{re.escape(t.lower())}\b", phrase):
             return t
     return None
 
@@ -54,7 +55,7 @@ class GroundingDinoAdapter:
         for box, score, phrase in zip(
             result["boxes"], result["scores"], result["text_labels"], strict=True
         ):
-            label = _match_target(phrase, lowered)
+            label = _match_target(phrase, targets)
             if label is not None:
                 detections.append(
                     Detection(

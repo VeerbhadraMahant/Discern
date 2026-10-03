@@ -32,3 +32,12 @@ def test_no_hardcoded_model_ids_in_src() -> None:
     sources = "\n".join(p.read_text(encoding="utf-8") for p in SRC.rglob("*.py"))
     for entry in REGISTRY.values():
         assert entry.model_id not in sources, entry.model_id
+
+
+def test_quantization_flag_matches_the_precision_in_the_entry_name() -> None:
+    # The Qwen adapter loads 4-bit only when asked; a "-bf16" entry must not be quantized.
+    for entry in REGISTRY.values():
+        if entry.name.endswith("-4bit"):
+            assert entry.quantize_4bit, entry.name
+        if entry.name.endswith("-bf16"):
+            assert not entry.quantize_4bit, entry.name

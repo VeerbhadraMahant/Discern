@@ -32,3 +32,4 @@ sessions/
 *.safetensors
 *.onnx
 *.ckpt
+build/

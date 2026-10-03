@@ -1,6 +1,7 @@
 # Model registry. One entry per (model, precision). Profiles pick entries by name.
 # revision: HF commit sha, or GitHub commit sha / release tag for non-HF assets.
-# vram_gb is approximate (weights plus a margin); replace with measured values in Milestone 1.
+# vram_gb is approximate (weights plus a margin). Restorers and the super-resolver carry measured
+# peak torch allocations at 1280x720 (scripts/restore_demo.py --bench) plus a small margin.
 # Verified 2026-10-03 against the HF API, GitHub API and upstream license files.
 qwen3-vl-8b-bf16:
   role: agent_vlm
@@ -19,6 +20,7 @@ qwen3-vl-4b-4bit:
   speed_class: slow
   adapter: discern.models.adapters.qwen3_vl.Qwen3VLAdapter
   vram_gb: 3.5
+  quantize_4bit: true
 yolo-world-v2:
   role: detector_fast
   model_id: yolov8s-worldv2.pt
@@ -77,7 +79,7 @@ mprnet-derain:
   license: Academic-Public-License (non-commercial)
   speed_class: fast
   adapter: discern.models.adapters.mprnet.MprnetAdapter
-  vram_gb: 2.0
+  vram_gb: 1.3
 swinir-denoise:
   role: restorer_denoise
   model_id: github:JingyunLiang/SwinIR
@@ -85,7 +87,7 @@ swinir-denoise:
   license: Apache-2.0
   speed_class: fast
   adapter: discern.models.adapters.swinir.SwinirAdapter
-  vram_gb: 1.5
+  vram_gb: 2.2
 llflow-lowlight:
   # CC BY-NC-SA 4.0, academic research use only. Not planned for the public Space.
   role: restorer_lowlight
@@ -94,7 +96,7 @@ llflow-lowlight:
   license: CC-BY-NC-SA-4.0 (academic research only)
   speed_class: slow
   adapter: discern.models.adapters.llflow.LlflowAdapter
-  vram_gb: 2.0
+  vram_gb: 0.7
 zero-dce-pp:
   # CC BY-NC 4.0 (academic research purpose). Lightweight low-light option for video.
   role: restorer_lowlight
@@ -103,7 +105,7 @@ zero-dce-pp:
   license: CC-BY-NC-4.0
   speed_class: fast
   adapter: discern.models.adapters.zero_dce.ZeroDcePpAdapter
-  vram_gb: 0.3
+  vram_gb: 0.2
 real-esrgan-x4plus:
   role: super_resolver
   model_id: github:xinntao/Real-ESRGAN (RealESRGAN_x4plus.pth)
@@ -111,4 +113,31 @@ real-esrgan-x4plus:
   license: BSD-3-Clause
   speed_class: slow
   adapter: discern.models.adapters.real_esrgan.RealEsrganAdapter
-  vram_gb: 2.0
+  vram_gb: 0.9
+classical-dehaze:
+  # Dark channel prior from legacy/v0/restoration.py. No weights; always available.
+  role: restorer_dehaze
+  model_id: legacy/v0/restoration.py:dehaze
+  revision: legacy-v0@b936eab
+  license: Project license (same as Discern)
+  speed_class: fast
+  adapter: discern.models.adapters.classical.ClassicalDehazeAdapter
+  vram_gb: 0.0
+classical-lowlight:
+  # CLAHE plus gamma from legacy/v0/restoration.py.
+  role: restorer_lowlight
+  model_id: legacy/v0/restoration.py:low_light_enhancement
+  revision: legacy-v0@b936eab
+  license: Project license (same as Discern)
+  speed_class: fast
+  adapter: discern.models.adapters.classical.ClassicalLowLightAdapter
+  vram_gb: 0.0
+classical-denoise:
+  # Non-local means from legacy/v0/restoration.py.
+  role: restorer_denoise
+  model_id: legacy/v0/restoration.py:denoise
+  revision: legacy-v0@b936eab
+  license: Project license (same as Discern)
+  speed_class: fast
+  adapter: discern.models.adapters.classical.ClassicalDenoiseAdapter
+  vram_gb: 0.0

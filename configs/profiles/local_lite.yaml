@@ -8,3 +8,8 @@ models:
   detector_fast: yolo-world-v2
   detector_accurate: owlv2-base
   embedder: siglip2-base
+  restorer_dehaze: classical-dehaze
+  restorer_derain: mprnet-derain
+  restorer_denoise: swinir-denoise
+  restorer_lowlight: zero-dce-pp
+  super_resolver: real-esrgan-x4plus

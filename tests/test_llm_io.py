@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from pathlib import Path
 
 import pytest
@@ -5,6 +6,7 @@ from pydantic import BaseModel
 
 from discern.agent.llm_io import load_prompt, structured_call
 from discern.models.fakes import FakeVLM
+from discern.models.roles import Image
 from discern.trace import TraceCollector
 
 HERE = Path(__file__).parent
@@ -58,6 +60,33 @@ def test_invalid_twice_falls_back() -> None:
     out, trace = run(vlm)
     assert out == FALLBACK
     assert len(vlm.prompts) == 2
+    assert trace.events[0].fallback_used is True
+
+
+class OutOfMemoryVLM(FakeVLM):
+    """Raises on the given 0-based call numbers (torch's CUDA OOM is a RuntimeError)."""
+
+    def __init__(self, responses: list[str], fail_on: set[int]) -> None:
+        super().__init__(responses)
+        self._fail_on = fail_on
+        self._calls = 0
+
+    def generate(self, prompt: str, images: Sequence[Image] = ()) -> str:
+        call, self._calls = self._calls, self._calls + 1
+        if call in self._fail_on:
+            raise RuntimeError("CUDA out of memory")
+        return super().generate(prompt, images)
+
+
+def test_vlm_runtime_error_falls_back_instead_of_crashing() -> None:
+    out, trace = run(OutOfMemoryVLM([], {0}))
+    assert out == FALLBACK
+    assert trace.events[0].fallback_used is True
+
+
+def test_vlm_runtime_error_during_repair_falls_back() -> None:
+    out, trace = run(OutOfMemoryVLM(["not json"], {1}))
+    assert out == FALLBACK
     assert trace.events[0].fallback_used is True
 
 

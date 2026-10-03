@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import Any
 
 import torch
 from PIL import Image as PILImage
@@ -27,15 +28,22 @@ class Qwen3VLAdapter:
         self._processor = AutoProcessor.from_pretrained(
             entry.model_id, revision=entry.revision, max_pixels=MAX_PIXELS
         )
+        precision: dict[str, Any] = (
+            {
+                "quantization_config": BitsAndBytesConfig(
+                    load_in_4bit=True,
+                    bnb_4bit_quant_type="nf4",
+                    bnb_4bit_compute_dtype=torch.bfloat16,
+                )
+            }
+            if entry.quantize_4bit
+            else {"dtype": torch.bfloat16}
+        )
         self._model = AutoModelForImageTextToText.from_pretrained(
             entry.model_id,
             revision=entry.revision,
-            quantization_config=BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_quant_type="nf4",
-                bnb_4bit_compute_dtype=torch.bfloat16,
-            ),
             device_map={"": device},
+            **precision,
         ).eval()
 
     @torch.inference_mode()

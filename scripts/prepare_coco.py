@@ -42,10 +42,13 @@ def main() -> None:
     items = coco_to_annotated(coco, Path("images"), LABELS, "normal")
     chosen = split_subset(items, N_GATE, N_HARVEST, SEED)
     with ThreadPoolExecutor(8) as pool:
-        for a in chosen:
-            dst = DATA_DIR / NAME / a.path
-            if not dst.exists():
-                pool.submit(fetch, f"http://images.cocodataset.org/val2017/{a.path.name}", dst)
+        downloads = [
+            pool.submit(fetch, f"http://images.cocodataset.org/val2017/{a.path.name}", dst)
+            for a in chosen
+            if not (dst := DATA_DIR / NAME / a.path).exists()
+        ]
+        for download in downloads:
+            download.result()  # a failed download must stop the script, not leave a missing image
     save_annotations(NAME, chosen)
     print(f"{NAME}: {len(items)} candidates, {len(chosen)} selected")
 

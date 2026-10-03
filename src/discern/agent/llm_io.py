@@ -2,6 +2,7 @@
 deterministic fallback, and a trace event for every call."""
 
 import json
+import logging
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -12,6 +13,8 @@ from pydantic import BaseModel, ValidationError
 
 from discern.models.roles import VLM, Image
 from discern.trace import TraceCollector
+
+logger = logging.getLogger(__name__)
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
 _VERSION_RE = re.compile(r"^(?P<name>.+)\.v(?P<version>\d+)\.txt$")
@@ -59,6 +62,15 @@ def _parse[T: BaseModel](text: str, schema: type[T]) -> T:
     return schema.model_validate_json(text)
 
 
+def _generate(vlm: VLM, text: str, images: Sequence[Image]) -> str | None:
+    """One VLM call. A runtime failure (CUDA out-of-memory is a RuntimeError) gives None."""
+    try:
+        return vlm.generate(text, images)
+    except RuntimeError:
+        logger.exception("VLM call failed")
+        return None
+
+
 def structured_call[T: BaseModel](
     vlm: VLM,
     prompt: Prompt,
@@ -74,19 +86,24 @@ def structured_call[T: BaseModel](
         span.input_summary = ", ".join(f"{k}={str(v)[:60]}" for k, v in variables.items())
         text = prompt.render(**variables) + _schema_instruction(schema)
 
-        raw = vlm.generate(text, images)
-        try:
-            result = _parse(raw, schema)
-        except ValidationError as err:
-            repair = (
-                f"{text}\n\nYour previous answer was invalid:\n{raw}\n\n"
-                f"Validation error:\n{err}\n\nReturn corrected JSON only."
-            )
-            raw = vlm.generate(repair, images)
+        result: T | None = None
+        raw = _generate(vlm, text, images)
+        if raw is not None:
             try:
                 result = _parse(raw, schema)
-            except ValidationError:
-                span.fallback_used = True
-                result = fallback()
+            except ValidationError as err:
+                repair = (
+                    f"{text}\n\nYour previous answer was invalid:\n{raw}\n\n"
+                    f"Validation error:\n{err}\n\nReturn corrected JSON only."
+                )
+                raw = _generate(vlm, repair, images)
+                if raw is not None:
+                    try:
+                        result = _parse(raw, schema)
+                    except ValidationError:
+                        pass
+        if result is None:
+            span.fallback_used = True
+            result = fallback()
         span.decision = result.model_dump_json()
         return result

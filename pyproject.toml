@@ -9,6 +9,9 @@ dependencies = [
     "pillow>=10.0",
     "pydantic>=2.7",
     "pyyaml>=6.0",
+    "av>=13.0",
+    "scenedetect>=0.7",
+    "supervision>=0.28,<0.31",
 ]
 
 [dependency-groups]
@@ -27,6 +30,8 @@ eval = [
     "pycocotools>=2.0.8",
     "remotezip>=0.12.6",
 ]
+# Gradio UI. Installed on the Space from space/requirements.txt, not in CI.
+app = ["gradio[oauth]>=6,<7", "spaces"]
 dev = [
     "mypy>=1.10",
     "pre-commit>=3.7",
@@ -63,7 +68,7 @@ markers = [
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
-extend-exclude = ["legacy"]
+extend-exclude = ["legacy", "src/discern/models/adapters/_vendor"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
@@ -75,7 +80,7 @@ plugins = ["pydantic.mypy"]
 
 # Heavy runtime libraries are not installed in CI, and adapters wrap untyped third-party APIs.
 [[tool.mypy.overrides]]
-module = ["torch.*", "transformers.*", "ultralytics.*", "PIL.*", "mlflow.*", "huggingface_hub.*", "remotezip.*", "cv2.*"]
+module = ["torch.*", "transformers.*", "ultralytics.*", "PIL.*", "mlflow.*", "huggingface_hub.*", "remotezip.*", "cv2.*", "scenedetect.*", "gradio.*", "spaces.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

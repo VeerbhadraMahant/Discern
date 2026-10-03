@@ -7,5 +7,9 @@ models:
   agent_vlm: qwen3-vl-8b-bf16
   detector_fast: yolo-world-v2
   detector_accurate: grounding-dino-base
-  detector_dense: rex-omni
   embedder: siglip2-base
+  restorer_dehaze: classical-dehaze
+  restorer_derain: mprnet-derain
+  restorer_denoise: swinir-denoise
+  restorer_lowlight: zero-dce-pp
+  super_resolver: real-esrgan-x4plus
