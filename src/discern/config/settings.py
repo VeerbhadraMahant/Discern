@@ -29,6 +29,8 @@ class AgentThresholds(_Frozen):
     sr_target_long_side: int
     fallback_accept_score: float
     default_operating_threshold: float
+    adjudicate_min_context_px: int
+    adjudicate_min_view_px: int
 
 
 class SimilarityWeights(_Frozen):

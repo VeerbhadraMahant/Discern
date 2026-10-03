@@ -9,6 +9,8 @@ agent:
   sr_target_long_side: 2048   # "2K" super-resolution target
   fallback_accept_score: 0.3  # adjudicate fallback: accept the anchor at or above this score
   default_operating_threshold: 0.25  # detection score floor for a detector without its own tuned threshold
+  adjudicate_min_context_px: 96  # adjudication crops are widened to at least this many pixels per side
+  adjudicate_min_view_px: 224  # and upscaled so the VLM sees at least this many pixels on the short side
 experience:
   top_k_profiles: 3
   harvest_samples_per_dataset: 50

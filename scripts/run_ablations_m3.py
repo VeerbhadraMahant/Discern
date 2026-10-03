@@ -139,8 +139,13 @@ def run_dataset(
     settings: Settings,
     limit: int,
     experience_for: Callable[[SceneProfile], str] = no_experience,
+    med_images: int = 0,
 ) -> None:
-    """`experience_for` gives the detector-selection experience for a profile (default none)."""
+    """`experience_for` gives the detector-selection experience for a profile (default none).
+
+    The VLM-adjudicated pipeline is slow, so it runs on the first `med_images` gate images
+    (0 = all); `best_single_sub` and `fused_k2_sub` score the same subset for comparison.
+    """
     restorers = LazyRestorers(manager)
     catalog = [
         DetectorInfo(name=n, capabilities=CAPABILITIES[n], speed_class=registry[n].speed_class)
@@ -158,6 +163,7 @@ def run_dataset(
     tag = registry[VLM_NAME].revision[:10]
     plan_cache = DATA_DIR / "_cache" / "m2" / f"{dataset}-{tag}.json"
     plans = plan_all(images, get_vlm, restorers, plan_cache)
+    manager.evict(VLM_NAME)  # free the VLM's VRAM before the detection phase
     sair = {
         a.image_id: variant_images(a, load_rgb(a.path), plans[a.image_id], restorers)["sair_full"]
         for a in images
@@ -192,10 +198,16 @@ def run_dataset(
         fused = fuse(sair, raw, ranked[:k], op, gate, settings)
         log_run(dataset, f"fused_k{k}", evaluate(fused, gate, 0.0), params)
 
+    sub = gate[:med_images] if med_images else gate
+    sub_params = {**params, "med_images": len(sub)}
+    log_run(dataset, "best_single_sub", evaluate(subset(raw[best], sub), sub, op[best]), sub_params)
+    fused2 = fuse(sair, raw, ranked[:2], op, sub, settings)
+    log_run(dataset, "fused_k2_sub", evaluate(fused2, sub, 0.0), sub_params)
+
     cached = {n: CachedDetector(n, raw[n]) for n in POOL}
     trace = TraceCollector()
     med: DetMap = {}
-    for a in gate:
+    for a in sub:
         for c in cached.values():
             c.current = a.image_id
         profile = profile_from_plan(plans[a.image_id])
@@ -217,25 +229,24 @@ def run_dataset(
         "adjudicated_groups": float(sum(1 for e in trace.events if e.node == "adjudicate")),
         "fallback_events": float(sum(1 for e in trace.events if e.fallback_used)),
     }
-    log_run(dataset, "med_k2", evaluate(med, gate, 0.0), params, extra)
+    log_run(dataset, "med_k2", evaluate(med, sub, 0.0), sub_params, extra)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("datasets", nargs="*", default=DEGRADED)
     ap.add_argument("--limit", type=int, default=0, help="images per split (0 = all)")
+    ap.add_argument("--med-images", type=int, default=30, help="gate images for MED (0 = all)")
     args = ap.parse_args()
 
     registry = load_registry()
     settings = load_settings()
-    manager = ModelManager(
-        registry, {}, settings.profile.vram_budget_gb, load_adapter, free_gpu
-    )
+    manager = ModelManager(registry, {}, settings.profile.vram_budget_gb, load_adapter, free_gpu)
     MLRUNS.mkdir(exist_ok=True)
     mlflow.set_tracking_uri(f"sqlite:///{(MLRUNS / 'mlflow.db').as_posix()}")
     mlflow.set_experiment("m3-med")
     for dataset in args.datasets:
-        run_dataset(dataset, manager, registry, settings, args.limit)
+        run_dataset(dataset, manager, registry, settings, args.limit, med_images=args.med_images)
 
 
 if __name__ == "__main__":

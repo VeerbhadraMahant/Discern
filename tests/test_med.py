@@ -89,10 +89,30 @@ def test_prompt_matches_golden_snapshot(name: str) -> None:
 # ---- detector_select --------------------------------------------------------------------------
 
 
-def select(vlm: FakeVLM, trace: TraceCollector | None = None) -> list[str]:
+EVIDENCE = "Similar scenes (3): acc_det F1 0.60 (n=10) vs fast_det F1 0.40 (n=10)"
+
+
+def select(
+    vlm: FakeVLM, trace: TraceCollector | None = None, experience: str = EVIDENCE
+) -> list[str]:
     return detector_select(
-        vlm, trace or TraceCollector(), TARGETS, PROFILE, CATALOG, PRIORITY, settings=SETTINGS
+        vlm,
+        trace or TraceCollector(),
+        TARGETS,
+        PROFILE,
+        CATALOG,
+        PRIORITY,
+        experience=experience,
+        settings=SETTINGS,
     ).detectors
+
+
+def test_select_without_experience_uses_priority_and_makes_no_vlm_call() -> None:
+    vlm = FakeVLM([])  # any call would raise
+    trace = TraceCollector()
+    assert select(vlm, trace, experience="") == PRIORITY[:K]
+    assert vlm.prompts == []
+    assert [e.node for e in trace.events] == ["detector_select"]
 
 
 def test_select_valid_choice_is_kept() -> None:
@@ -133,12 +153,23 @@ def run_adjudicate(
     return adjudicate(vlm, trace or TraceCollector(), image(), group, TARGETS, SETTINGS)
 
 
-def test_adjudicate_picks_second_candidate_and_relabels() -> None:
-    vlm = FakeVLM([pick(2, "person")])
+def test_adjudicate_picks_second_candidate() -> None:
+    vlm = FakeVLM([pick(2, "car")])
     result = run_adjudicate(vlm, group_of(A, B))
     assert result is not None
-    assert (result.box, result.label, result.source_detector) == (B.box, "person", "fast_det")
+    assert (result.box, result.label, result.source_detector) == (B.box, "car", "fast_det")
     assert "detector=fast_det, label=car, score=0.60" in vlm.prompts[0]
+
+
+def test_adjudicate_may_not_invent_a_label_no_candidate_proposed() -> None:
+    result = run_adjudicate(FakeVLM([pick(2, "person")]), group_of(A, B))  # both say "car"
+    assert result is not None and result.label == "car"
+
+
+def test_adjudicate_may_choose_between_labels_the_candidates_proposed() -> None:
+    other = det((42, 32, 82, 72), 0.6, "fast_det", "person")
+    result = run_adjudicate(FakeVLM([pick(1, "person")]), group_of(A, other))
+    assert result is not None and result.label == "person" and result.box == A.box
 
 
 def test_adjudicate_reject_returns_none() -> None:
@@ -176,7 +207,7 @@ def test_adjudicate_sends_one_annotated_crop() -> None:
 
     run_adjudicate(Spy([REJECT]), group_of(A, B))
     assert len(sent) == 1
-    assert sent[0].shape[0] < image().shape[0]
+    assert min(sent[0].shape[:2]) >= SETTINGS.thresholds.agent.adjudicate_min_view_px
     assert (sent[0][..., 0] == 255).any()  # candidate 1 drawn in red
 
 
@@ -205,6 +236,7 @@ def run(
         settings=SETTINGS,
         operating_thresholds=thresholds,
         priority=PRIORITY,
+        experience=EVIDENCE,
     )
 
 
@@ -259,6 +291,7 @@ def test_default_operating_threshold_comes_from_config() -> None:
         adjudicate=False,
         settings=strict,
         priority=PRIORITY,
+        experience=EVIDENCE,
     )
     assert out == [A]
 
@@ -290,6 +323,7 @@ def test_adjudicate_all_false_skips_vlm_for_groups_two_detectors_agree_on() -> N
         adjudicate_all=False,
         settings=SETTINGS,
         priority=PRIORITY,
+        experience=EVIDENCE,
     )
     assert out == [A]
     assert len(vlm.prompts) == 1  # detector_select only

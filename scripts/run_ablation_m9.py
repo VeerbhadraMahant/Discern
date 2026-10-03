@@ -121,6 +121,7 @@ def main() -> None:
         }
         for arm, (plan_exp, detect_exp, plan_cache, det_cache_dir) in arms.items():
             plans = plan_all(images, get_vlm, restorers, plan_cache, plan_exp)
+            manager.evict(VLM_NAME)  # free the VLM's VRAM before the detection phase
             sair = {
                 a.image_id: variant_images(a, load_rgb(a.path), plans[a.image_id], restorers)[
                     "sair_full"

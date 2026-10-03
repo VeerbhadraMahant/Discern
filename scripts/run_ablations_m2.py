@@ -178,6 +178,7 @@ def main() -> None:
         tag = "stub" if args.stub_vlm else registry[VLM_NAME].revision[:10]
         cache_file = DATA_DIR / "_cache" / "m2" / f"{dataset}-{tag}.json"
         plans = plan_all(gate + harvest, get_vlm, restorers, cache_file)
+        manager.evict(VLM_NAME)  # free the VLM's VRAM before the detection phase
 
         dets: dict[str, dict[str, list[Detection]]] = {v: {} for v in VARIANTS}
         for a in gate + harvest:

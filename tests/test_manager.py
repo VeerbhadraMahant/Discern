@@ -80,3 +80,14 @@ def test_model_larger_than_budget_is_rejected_without_evicting() -> None:
         mgr.get("agent_vlm", "huge")
     assert unloads == []
     assert mgr.loaded_names == ["det_a"]
+
+
+def test_evict_unloads_now_and_is_a_noop_when_not_loaded() -> None:
+    mgr, loads, unloads = make()
+    mgr.get("detector")
+    mgr.evict("det_b")  # not loaded
+    assert unloads == []
+    mgr.evict("det_a")
+    assert unloads == ["model:det_a"] and mgr.loaded_names == []
+    mgr.get("detector")  # loads again after an explicit eviction
+    assert loads == ["det_a", "det_a"]

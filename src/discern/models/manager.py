@@ -56,6 +56,13 @@ class ModelManager:
     def used_gb(self) -> float:
         return sum(self._registry[n].vram_gb for n in self._loaded)
 
+    def evict(self, name: str) -> None:
+        """Unload a model now (no-op if not loaded), e.g. to free VRAM for the next phase."""
+        model = self._loaded.pop(name, None)
+        if model is not None:
+            logger.info("evicting %s on request", name)
+            self._unloader(model)
+
     def get(self, role: str, name: str | None = None) -> object:
         """Return the model for `role` (the profile's active entry unless `name` is given)."""
         name = name or self._active[role]
