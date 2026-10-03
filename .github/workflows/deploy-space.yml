@@ -1,0 +1,51 @@
+name: deploy-space
+
+# Deploys the Hugging Face Space bundle (system-design 9.5). Runs ONLY on release tags (v*), never
+# on branches or pull requests. Before first use the repository owner must:
+#   1. create the Space on Hugging Face (SDK: Gradio, hardware: ZeroGPU),
+#   2. add the repository secret HF_TOKEN (a write token for that Space),
+#   3. add the repository variable HF_SPACE (for example your-name/discern).
+# Nothing in this repository creates the Space or sets the secret.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      # The GPU gate runs on pushes to main (gate.yml). Deploy only a commit it passed.
+      - name: Require a passing gate for this commit
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          passed=$(gh run list --workflow gate.yml --commit "$GITHUB_SHA" --status success --json conclusion --jq length)
+          if [ "$passed" -lt 1 ]; then
+            echo "gate.yml has no successful run for $GITHUB_SHA"
+            exit 1
+          fi
+      - run: uv sync --locked
+      - run: uv run pytest -q
+      - run: uv run python scripts/build_space_bundle.py --out build/space
+      - name: Push the bundle to the Space
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          uv run --no-project --with huggingface_hub==1.33.0 python - <<'PY'
+          import os
+          from huggingface_hub import HfApi
+
+          HfApi(token=os.environ["HF_TOKEN"]).upload_folder(
+              folder_path="build/space",
+              repo_id=os.environ["HF_SPACE"],
+              repo_type="space",
+              commit_message=f"deploy {os.environ['GITHUB_REF_NAME']}",
+          )
+          PY

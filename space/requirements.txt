@@ -1,0 +1,16 @@
+# Runtime dependencies for the hosted_full profile on a ZeroGPU Space.
+# torch and torchvision are deliberately NOT pinned: ZeroGPU provides a CUDA build that matches
+# its runtime, and a pinned CUDA wheel from the repository lockfile would conflict with it.
+# gradio and spaces are provided by the Space itself (sdk_version in README.md, hf_oauth: true).
+# Versions below are the ones in the repository's uv.lock.
+numpy==2.4.6
+pillow==12.3.0
+pydantic==2.13.5
+pyyaml==6.0.3
+av==19.0.1
+scenedetect==0.7.1
+supervision==0.30.6
+transformers==5.18.0
+accelerate==1.15.0
+bitsandbytes==0.50.2
+ultralytics==8.4.171
