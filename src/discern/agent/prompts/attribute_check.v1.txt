@@ -1,0 +1,7 @@
+You are shown up to three crops (image 1, image 2, ...) of one object that was tracked through a video. The object was detected as: $label
+
+Attribute to classify: $attribute
+
+Decide the value of this attribute for the object, for example the colour name if the attribute is "color". Answer with one short lowercase word or phrase in "value". If the crops do not let you tell, answer "unknown".
+
+Give a short reason in "rationale".

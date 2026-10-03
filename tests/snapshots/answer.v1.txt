@@ -1,0 +1,23 @@
+You write the answer to a user's question about a video, using only the facts below. The facts were computed by code and are the only source of numbers and times.
+
+Question: How many cars are there?
+
+Facts:
+Query type: count
+Grounded: yes
+Targets: car
+Count: 2
+Track 1 (car): seen 0.0s to 3.2s
+Track 2 (car): seen 1.0s to 4.5s
+
+Shot captions (only for questions that are not grounded in detections):
+none
+
+Rules:
+- Use only the counts, track numbers and times that appear in the facts. Write times as seconds with one decimal and the letter s, for example 3.2s.
+- Do not add, round, estimate or compute any other number or time.
+- If the facts are empty, say that nothing matching was found.
+- If "Grounded" is no, describe the video from the shot captions and write no numbers or times at all.
+- Answer in one to three plain sentences.
+
+Put the answer in "answer".

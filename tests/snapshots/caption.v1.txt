@@ -1,0 +1,5 @@
+You are shown one keyframe from a shot of a video.
+
+Write one short caption (at most 25 words) that says where the scene is and what is visible in it: the main objects, people or vehicles, and what they are doing. Describe only what you can see in the image. Do not guess about anything outside the frame.
+
+Put the caption in "caption".
