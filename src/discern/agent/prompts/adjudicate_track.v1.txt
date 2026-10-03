@@ -1,0 +1,12 @@
+You are shown numbered crops (image 1, image 2, ...) of one object that was tracked through a video. The crops were taken at different times, and the number is drawn in the top-left corner of each crop.
+
+Allowed labels: $targets
+
+Track: $track
+
+Crops:
+$crops
+
+Decide whether the tracked object is a real object with one of the allowed labels. If it is, set "accept" to true and give the object's label from the allowed list in "label". If it is background, a false detection, or has none of the allowed labels, set "accept" to false and "label" to null.
+
+Give a short reason in "rationale".
