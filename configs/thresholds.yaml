@@ -1,0 +1,12 @@
+# Values stated in the DetAS paper (arXiv 2605.31174). Deviations go in the design doc.
+grouping:
+  alpha: 0.25        # box expansion before cropping
+  theta_iou: 0.5     # IoU threshold for group membership
+  phi_vis: 0.5       # crop cosine-similarity threshold for group membership
+  crop_size: 32      # crops resized to crop_size x crop_size before flattening
+agent:
+  top_k_detectors: 2
+  sr_target_long_side: 2048   # "2K" super-resolution target
+experience:
+  top_k_profiles: 3
+  harvest_samples_per_dataset: 50

@@ -1,0 +1,9 @@
+name: local_lite
+vram_budget_gb: 7.0         # RTX 4060 has 8GB; leave headroom for CUDA context
+max_video_seconds: 600
+max_long_side_px: 1280
+sample_fps: 2.0
+models:
+  agent_vlm: qwen3-vl-4b
+  detector_fast: yolo-world-v2
+  detector_accurate: owlv2-base
