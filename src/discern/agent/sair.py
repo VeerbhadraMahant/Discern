@@ -1,18 +1,21 @@
 """SAIR orchestration: perception, restorer and image selection, SR selection."""
 
 import logging
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 from discern.agent.nodes.image_select import image_select
 from discern.agent.nodes.perception import perception
 from discern.agent.nodes.restorer_select import NONE, restorer_select
 from discern.agent.nodes.sr_select import sr_select
-from discern.agent.schemas import ShotPlan
+from discern.agent.schemas import SceneProfile, ShotPlan
 from discern.config.settings import Settings, load_settings
 from discern.models.roles import VLM, Image, Restorer
 from discern.trace import TraceCollector
 
 logger = logging.getLogger(__name__)
+
+# Experience text for the restorer and SR prompts: fixed, or computed from the perceived profile.
+Experience = str | Callable[[SceneProfile], str]
 
 
 def plan_image(
@@ -20,7 +23,7 @@ def plan_image(
     trace: TraceCollector,
     image: Image,
     restorers: Mapping[str, Restorer],
-    experience: str = "",
+    experience: Experience = "",
     settings: Settings | None = None,
 ) -> tuple[ShotPlan, Image]:
     """Plan SAIR decisions for one image. Returns the plan and the original or restored image.
@@ -32,8 +35,9 @@ def plan_image(
 
     profile = perception(vlm, trace, image)
     decisions.append(f"perception: {profile.key}")
+    experience_text = experience(profile) if callable(experience) else experience
 
-    restorer_name = restorer_select(vlm, trace, profile, experience).restorer
+    restorer_name = restorer_select(vlm, trace, profile, experience_text).restorer
     chosen = image
     use_restored = False
 
@@ -55,7 +59,7 @@ def plan_image(
                 chosen, use_restored = restored, True
             decisions.append(f"image_select: {'restored' if use_restored else 'original'}")
 
-    sr = sr_select(vlm, trace, chosen, profile, target, experience)
+    sr = sr_select(vlm, trace, chosen, profile, target, experience_text)
     decisions.append(f"sr_select: {sr.factor}")
 
     plan = ShotPlan(

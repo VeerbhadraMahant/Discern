@@ -8,7 +8,7 @@ import av
 import av.error
 import av.video.frame
 
-from discern.config.settings import Profile
+from discern.config.settings import Profile, Settings
 from discern.video.types import SampledFrame, VideoError, VideoInfo
 
 
@@ -54,6 +54,12 @@ def validate(info: VideoInfo, profile: Profile) -> None:
         )
 
 
+def decode_limit(settings: Settings) -> float:
+    """Decoded time (seconds) past which decoding stops: the profile maximum duration plus the
+    configured margin. Headers can understate the duration, so decoding enforces it too."""
+    return settings.profile.max_video_seconds + settings.thresholds.video.duration_margin_seconds
+
+
 def working_size(width: int, height: int, max_long_side: int) -> tuple[int, int]:
     """Downscale so the long side is at most max_long_side; never upscale."""
     factor = min(1.0, max_long_side / max(width, height))
@@ -61,10 +67,11 @@ def working_size(width: int, height: int, max_long_side: int) -> tuple[int, int]
 
 
 def iter_sampled_frames(
-    path: Path, sample_fps: float, max_long_side: int
+    path: Path, sample_fps: float, max_long_side: int, max_seconds: float | None = None
 ) -> Iterator[SampledFrame]:
     """Yield frames about every 1/sample_fps seconds (all frames if the video is slower),
-    as RGB uint8 arrays downscaled to the working resolution."""
+    as RGB uint8 arrays downscaled to the working resolution. With `max_seconds`, a frame
+    decoded later than that raises `VideoError` (see `decode_limit`)."""
     with open_video(path) as container:
         if not container.streams.video:
             raise VideoError(f"{path.name} has no video stream")
@@ -77,6 +84,11 @@ def iter_sampled_frames(
         try:
             for index, frame in enumerate(container.decode(stream)):
                 t = float(frame.time) if frame.time is not None else index / fallback_fps
+                if max_seconds is not None and t > max_seconds:
+                    raise VideoError(
+                        f"{path.name} runs past {max_seconds:g}s while decoding; "
+                        "its header understates the duration"
+                    )
                 if t + 1e-6 < next_time:
                     continue
                 next_time += step

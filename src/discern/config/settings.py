@@ -28,6 +28,7 @@ class AgentThresholds(_Frozen):
     top_k_detectors: int
     sr_target_long_side: int
     fallback_accept_score: float
+    default_operating_threshold: float
 
 
 class SimilarityWeights(_Frozen):
@@ -51,6 +52,7 @@ class VideoThresholds(_Frozen):
     track_lost_seconds: float
     reid_cosine: float
     reid_max_gap_seconds: float
+    duration_margin_seconds: float
 
 
 class IndexThresholds(_Frozen):
@@ -106,6 +108,9 @@ class GpuSeconds(_Frozen):
 class ServeThresholds(_Frozen):
     ttl_seconds: float  # session directory lifetime after last use
     max_upload_mb: float
+    max_pixels: int  # largest accepted image, width x height
+    memory_dir: str  # experience memory files and the pointer that pins the live version
+    memory_pointer: str  # pointer file name inside memory_dir
     max_queries_per_session: int
     cleanup_interval_seconds: float  # how often expired sessions are swept
     gpu_seconds: GpuSeconds

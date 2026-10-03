@@ -8,6 +8,7 @@ agent:
   top_k_detectors: 2
   sr_target_long_side: 2048   # "2K" super-resolution target
   fallback_accept_score: 0.3  # adjudicate fallback: accept the anchor at or above this score
+  default_operating_threshold: 0.25  # detection score floor for a detector without its own tuned threshold
 experience:
   top_k_profiles: 3
   harvest_samples_per_dataset: 50
@@ -24,6 +25,7 @@ video:
   track_lost_seconds: 2.0      # a track survives this long without a matching box
   reid_cosine: 0.8             # embedding cosine at or above which two tracks are one object
   reid_max_gap_seconds: 2.0    # longest time gap bridged by re-identification
+  duration_margin_seconds: 1.0 # decoding stops with an error this long past the profile max duration
 index:
   smoothing_seconds: 2.0       # frame similarities are averaged over this window; also the segment length
   top_segments: 3              # retrieved segments per query
@@ -62,6 +64,9 @@ eval_gate:
 serve:
   ttl_seconds: 3600            # session directories (uploads, traces) are deleted this long after last use
   max_upload_mb: 50            # largest accepted upload
+  max_pixels: 50000000         # largest accepted image (width x height), checked before decoding
+  memory_dir: data/memory      # holds memory-<version>.json and the pointer file that pins the live version
+  memory_pointer: pinned.json  # file name of the pointer inside memory_dir
   max_queries_per_session: 20  # questions per uploaded video
   cleanup_interval_seconds: 300  # expired sessions are swept this often
   gpu_seconds:                 # PLACEHOLDERS: ZeroGPU duration per call, to be set from measured timings

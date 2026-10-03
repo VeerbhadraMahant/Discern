@@ -167,6 +167,13 @@ def test_required_factor_is_clamped_to_2_or_4(long_side: int, expected: int | No
     assert required_factor(long_side, TARGET) == expected
 
 
+def test_sr_factors_have_a_single_definition() -> None:
+    from discern.agent.nodes import sr_select as module
+    from discern.models import tiling
+
+    assert module.SR_FACTORS is tiling.SR_FACTORS
+
+
 def test_sr_select_valid_on() -> None:
     out = sr_select(FakeVLM([SR_ON]), TraceCollector(), small_image(), make_profile(), TARGET)
     assert out.factor == 4

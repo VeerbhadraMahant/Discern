@@ -23,7 +23,7 @@ import numpy as np
 
 from discern.agent.nodes.restorer_select import NONE, RESTORER_FOR_SCENE
 from discern.agent.sair import plan_image
-from discern.agent.schemas import ShotPlan
+from discern.agent.schemas import SceneProfile, ShotPlan
 from discern.config import load_settings
 from discern.eval.datasets import DATA_DIR, load_dataset
 from discern.eval.runner import dataset_targets, load_rgb, score_method
@@ -90,13 +90,20 @@ def _save(path: Path, plans: Mapping[str, ShotPlan]) -> None:
     path.write_text(json.dumps({k: v.model_dump() for k, v in plans.items()}))
 
 
+def no_experience(profile: SceneProfile) -> str:
+    return ""
+
+
 def plan_all(
     images: Sequence[AnnotatedImage],
     get_vlm: Callable[[], VLM],
     restorers: LazyRestorers,
     cache_file: Path,
+    experience_for: Callable[[SceneProfile], str] = no_experience,
 ) -> dict[str, ShotPlan]:
-    """SAIR plan per image, cached on disk so an interrupted run resumes."""
+    """SAIR plan per image, cached on disk so an interrupted run resumes. `experience_for` gives
+    the experience text for the perceived profile; a run with experience needs its own
+    `cache_file`, because cached plans do not record which experience produced them."""
     plans: dict[str, ShotPlan] = {}
     if cache_file.exists():
         raw = json.loads(cache_file.read_text())
@@ -105,7 +112,9 @@ def plan_all(
     for n, a in enumerate(images):
         if a.image_id in plans:
             continue
-        plans[a.image_id], _ = plan_image(get_vlm(), trace, load_rgb(a.path), restorers)
+        plans[a.image_id], _ = plan_image(
+            get_vlm(), trace, load_rgb(a.path), restorers, experience_for
+        )
         if n % 10 == 9:
             _save(cache_file, plans)
     _save(cache_file, plans)

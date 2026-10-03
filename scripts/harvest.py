@@ -10,9 +10,12 @@ Detector outputs are cached under data/_cache/seeh/, one file per (variant, dete
 Outputs: data/memory/records.jsonl (raw records, appended) and
 data/memory/memory-<version>.json (aggregated, versioned memory).
 
-Full-adjudication confirmation of the top configurations is not wired yet (it needs the GPU
-adjudication pass); `--no-confirm` accepts the cheap fused score for them and says so. Records
-written that way carry no adjudicated rows, so do not report them as paper-faithful.
+Confirmation of the top configurations: with `--adjudicate` each is re-scored by running
+`detect_image` (VLM detector selection among the configuration's detectors, then crop-level
+adjudication of every group) on the cached detections; this needs the VLM and so a GPU. Without
+it (the default; `--no-confirm` is accepted and means the same) the cheap fused score stands in
+and the records carry no adjudicated rows, so do not report them as paper-faithful. Not wired:
+the VLM may pick fewer detectors than the configuration names, because selection is not forced.
 Publishing to Hugging Face is a separate step: `discern.experience.aggregate.publish_to_hf`.
 """
 
@@ -37,7 +40,8 @@ def _parse(argv: list[str] | None) -> argparse.Namespace:
     p.add_argument("--sr", default=None, help="registry entry of the super-resolution model")
     p.add_argument("--limit", type=int, default=None, help="images per dataset (default: settings)")
     p.add_argument("--min-score", type=float, default=0.0, help="detection score floor")
-    p.add_argument("--no-confirm", action="store_true", help="skip full adjudication (see above)")
+    p.add_argument("--adjudicate", action="store_true", help="confirm top configs (see above)")
+    p.add_argument("--no-confirm", action="store_true", help="skip adjudication (the default)")
     p.add_argument("--memory-dir", type=Path, default=None, help="default: data/memory")
     return p.parse_args(argv)
 
@@ -52,16 +56,29 @@ DATASETS = [
 ]
 
 
+class _Cached:
+    """A detector that returns precomputed detections whatever the image."""
+
+    def __init__(self, detections: Sequence[object]) -> None:
+        self._detections = list(detections)
+
+    def detect(self, image: object, targets: Sequence[str]) -> list[object]:
+        return list(self._detections)
+
+
 def main(argv: list[str] | None = None) -> None:
     args = _parse(argv)
     # Heavy imports live here so `--help` and linting never load model stacks.
     import numpy as np
 
+    from discern.agent.med import detect_image
     from discern.agent.nodes.perception import perception
     from discern.agent.nodes.restorer_select import RESTORER_FOR_SCENE
     from discern.agent.nodes.sr_select import required_factor
+    from discern.agent.schemas import DetectorInfo, SceneProfile
     from discern.config import load_settings
     from discern.eval.datasets import DATA_DIR, load_dataset
+    from discern.eval.metrics import match_image
     from discern.eval.runner import cache_path, dataset_targets, detect_all, load_rgb
     from discern.eval.types import GroundTruthBox
     from discern.experience.aggregate import build_memory, write_memory
@@ -94,9 +111,9 @@ def main(argv: list[str] | None = None) -> None:
         for name, entry in (r.split("=", 1) for r in args.restorers)
     }
     sr_model = load_adapter(registry[args.sr]) if args.sr else None
-    if not args.no_confirm:
-        raise SystemExit("full-adjudication confirmation is not wired yet; pass --no-confirm")
-    print("WARNING: confirmation skipped, cheap fused scores stand in for adjudication")
+    adjudicate = args.adjudicate and not args.no_confirm
+    if not adjudicate:
+        print("WARNING: confirmation skipped, cheap fused scores stand in for adjudication")
 
     grouping = settings.thresholds.grouping
     target = settings.thresholds.agent.sr_target_long_side
@@ -146,8 +163,34 @@ def main(argv: list[str] | None = None) -> None:
                 image: Image = image,
                 gt: Sequence[GroundTruthBox] = gt,
                 outs: CachedOutputs = outs,
+                profile: SceneProfile = profiles[a.image_id],
+                targets: list[str] = targets,
             ) -> float:
-                return fused_f1(c, image, gt, outs, grouping, args.min_score)
+                if not adjudicate:
+                    return fused_f1(c, image, gt, outs, grouping, args.min_score)
+                cached = {n: _Cached(outs[c.variant][n]) for n in c.detectors}
+                catalog = [
+                    DetectorInfo(
+                        name=n,
+                        capabilities=registry[n].role.replace("_", " "),
+                        speed_class=registry[n].speed_class,
+                    )
+                    for n in c.detectors
+                ]
+                final = detect_image(
+                    vlm,
+                    TraceCollector(),
+                    image,
+                    targets,
+                    profile,
+                    cached,  # type: ignore[arg-type]
+                    catalog,
+                    adjudicate_all=False,
+                    settings=settings,
+                    operating_thresholds=dict.fromkeys(c.detectors, args.min_score),
+                    priority=c.detectors,
+                )
+                return match_image(final, gt).f1
 
             records += harvest_image(
                 a.image_id,
@@ -160,7 +203,7 @@ def main(argv: list[str] | None = None) -> None:
                 list(detectors),
                 grouping,
                 confirm,
-                0 if args.no_confirm else exp.confirm_top_configs,  # 0: no "adjudicated" rows
+                exp.confirm_top_configs if adjudicate else 0,  # 0: no "adjudicated" rows
                 args.version,
                 args.min_score,
             )

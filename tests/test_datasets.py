@@ -88,6 +88,25 @@ def test_coco_conversion_maps_labels_and_converts_xywh() -> None:
     assert a.objects == (GroundTruthBox(box=Box(10, 20, 40, 60), label="car"),)
 
 
+def test_coco_conversion_skips_crowd_annotations() -> None:
+    from discern.eval.datasets import coco_to_annotated
+
+    coco = {
+        "categories": [{"id": 0, "name": "car"}],
+        "images": [
+            {"id": 1, "file_name": "1.jpg", "width": 100, "height": 80},
+            {"id": 2, "file_name": "2.jpg", "width": 100, "height": 80},
+        ],
+        "annotations": [
+            {"image_id": 1, "category_id": 0, "bbox": [10, 20, 30, 40], "iscrowd": 0},
+            {"image_id": 1, "category_id": 0, "bbox": [0, 0, 90, 70], "iscrowd": 1},
+            {"image_id": 2, "category_id": 0, "bbox": [0, 0, 90, 70], "iscrowd": 1},
+        ],
+    }
+    (a,) = coco_to_annotated(coco, Path("images"), {"car": "car"}, "normal")
+    assert a.objects == (GroundTruthBox(box=Box(10, 20, 40, 60), label="car"),)
+
+
 def test_darkface_label_parsing() -> None:
     from discern.eval.datasets import parse_darkface_label
 

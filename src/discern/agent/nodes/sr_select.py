@@ -5,9 +5,8 @@ import math
 from discern.agent.llm_io import load_prompt, structured_call
 from discern.agent.schemas import SceneProfile, SRChoice
 from discern.models.roles import VLM, Image
+from discern.models.tiling import SR_FACTORS
 from discern.trace import TraceCollector
-
-SR_FACTORS = (2, 4)
 
 
 def required_factor(long_side: int, target_long_side: int) -> int | None:

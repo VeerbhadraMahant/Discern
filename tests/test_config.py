@@ -17,6 +17,7 @@ def test_paper_values() -> None:
     assert t.agent.top_k_detectors == 2
     assert t.agent.sr_target_long_side == 2048
     assert t.agent.fallback_accept_score == 0.3
+    assert t.agent.default_operating_threshold == 0.25
     assert t.experience.top_k_profiles == 3
     assert t.experience.harvest_samples_per_dataset == 50
     assert t.experience.confirm_top_configs == 3

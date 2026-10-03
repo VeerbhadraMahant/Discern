@@ -21,14 +21,17 @@ import numpy as np
 from PIL import Image as PILImage
 from PIL import ImageDraw
 
-from discern.agent.med import DEFAULT_OPERATING_THRESHOLD, detect_image
+from discern.agent.med import detect_image
 from discern.agent.nodes.restorer_select import NONE
 from discern.agent.sair import plan_image
 from discern.agent.schemas import DetectorInfo, SceneProfile, ShotPlan
-from discern.config.settings import Settings, load_settings
-from discern.experience.aggregate import Memory, MemoryVersion
+from discern.config.settings import ServeThresholds, Settings, load_settings
+from discern.experience.aggregate import Memory, MemoryVersion, load_memory, memory_path
+from discern.experience.injection import render_for
+from discern.experience.promotion import read_pointer
+from discern.experience.schema import Node
 from discern.feedback.schema import Feedback, FeedbackStore, StoredFeedback
-from discern.index.video_index import VideoIndex, build_index
+from discern.index.video_index import Segment, VideoIndex, build_index
 from discern.models.loading import load_adapter
 from discern.models.manager import ModelManager, RegistryEntry
 from discern.models.registry import load_registry
@@ -40,7 +43,7 @@ from discern.query.session import answer_question
 from discern.serve.gpu import gpu, gpu_available
 from discern.serve.session import SessionStore, validate_upload
 from discern.trace import TraceCollector, TraceEvent
-from discern.video.io import iter_sampled_frames, working_size
+from discern.video.io import decode_limit, iter_sampled_frames, working_size
 from discern.video.pipeline import VideoIngest, ingest_video, track_video
 from discern.video.render import render_video
 from discern.video.types import Shot, Track, VideoInfo
@@ -183,6 +186,17 @@ def _seconds(name: str) -> Callable[..., int]:
     return duration
 
 
+def load_pinned_memory(serve: ServeThresholds) -> Memory | None:
+    """The memory version pinned by the pointer file in `serve.memory_dir`; None when there is no
+    pointer or the file it names is missing (the agent then runs without experience)."""
+    directory = Path(serve.memory_dir)
+    version = read_pointer(directory / serve.memory_pointer)
+    if version is None:
+        return None
+    path = memory_path(directory, version)
+    return load_memory(path) if path.exists() else None
+
+
 def profile_from_plan(plan: ShotPlan) -> SceneProfile:
     """Rebuild the perceived profile from the key recorded in the plan's first decision."""
     scene, illum, vis, scale_, density = plan.decisions[0].split(": ", 1)[1].split("|")
@@ -321,6 +335,15 @@ class Engine:
     def _embedder(self) -> Any:
         return self.manager.get("embedder")
 
+    def _experience(self, profile: SceneProfile, *nodes: Node) -> str:
+        """Retrieved experience for `profile` rendered for the given nodes; empty without memory."""
+        if self.memory is None:
+            return ""
+        return render_for(self.memory, profile.key, nodes, self.settings.thresholds.experience)
+
+    def _plan_experience(self, profile: SceneProfile) -> str:
+        return self._experience(profile, "restorer", "sr")
+
     # ---- measurement and bookkeeping ---------------------------------------------------------
 
     def record_gpu_ms(self, name: str, ms: float) -> None:
@@ -424,7 +447,12 @@ class Engine:
     def _clean_gpu(self, working: Image) -> tuple[ShotPlan, Image, list[TraceEvent]]:
         trace = TraceCollector()
         plan, chosen = plan_image(
-            self._vlm(), trace, working, self.restorers, settings=self.settings
+            self._vlm(),
+            trace,
+            working,
+            self.restorers,
+            experience=self._plan_experience,
+            settings=self.settings,
         )
         cleaned = chosen
         if plan.sr_factor and "super_resolver" in self.settings.profile.models:
@@ -439,6 +467,12 @@ class Engine:
         plan asks for it). The agent sees a working copy no larger than the profile allows."""
         try:
             with PILImage.open(path) as pil:
+                max_pixels = self.settings.thresholds.serve.max_pixels
+                if pil.width * pil.height > max_pixels:  # only the header has been read
+                    raise LimitError(
+                        f"this image is {pil.width}x{pil.height}; at most {max_pixels} pixels "
+                        "are accepted"
+                    )
                 original = np.asarray(pil.convert("RGB"), dtype=np.uint8)
         except OSError as err:
             raise EngineError("this file could not be read as an image") from err
@@ -474,6 +508,7 @@ class Engine:
             self.detectors,
             self.catalog,
             settings=self.settings,
+            experience=self._experience(profile, "detector_set"),
         )
         return found, trace.events
 
@@ -497,7 +532,14 @@ class Engine:
         self, path: Path
     ) -> tuple[VideoInfo, list[Shot], dict[int, ShotPlan], list[TraceEvent]]:
         trace = TraceCollector()
-        ingest = ingest_video(path, self._vlm(), trace, self.restorers, settings=self.settings)
+        ingest = ingest_video(
+            path,
+            self._vlm(),
+            trace,
+            self.restorers,
+            experience=self._plan_experience,
+            settings=self.settings,
+        )
         return ingest.info, ingest.shots, ingest.plans, trace.events
 
     @gpu(duration=_seconds("index"))
@@ -536,7 +578,9 @@ class Engine:
         wanted = {s.keyframe_index: s.id for s in ingest.shots}
         pairs: dict[int, tuple[Image, Image]] = {}
         profile = self.settings.profile
-        for frame in iter_sampled_frames(ingest.path, profile.sample_fps, profile.max_long_side_px):
+        for frame in iter_sampled_frames(
+            ingest.path, profile.sample_fps, profile.max_long_side_px, decode_limit(self.settings)
+        ):
             if frame.index not in wanted:
                 continue
             plan = ingest.plans[wanted[frame.index]]
@@ -562,7 +606,7 @@ class Engine:
     def _frame_detector(self, targets: Sequence[str]) -> Callable[[Shot, Image], list[Detection]]:
         """Fused proposals from the fast-class detectors of the profile (no VLM per frame)."""
         fast = [n for n in self.detectors if self.registry[n].speed_class == "fast"]
-        floor = max(DEFAULT_OPERATING_THRESHOLD, SCORE_FLOOR)
+        floor = max(self.settings.thresholds.agent.default_operating_threshold, SCORE_FLOOR)
 
         def detect(shot: Shot, image: Image) -> list[Detection]:
             pooled: list[Detection] = []
@@ -585,8 +629,11 @@ class Engine:
         vlm, embedder = self._vlm(), self._embedder()
         ingest = session.ingest
 
-        def detect(targets: Sequence[str], segments: object) -> list[Track]:
-            return track_video(ingest, self._frame_detector(targets), embedder, vlm, trace, targets)
+        def detect(targets: Sequence[str], segments: Sequence[Segment] | None) -> list[Track]:
+            windows = None if segments is None else [(s.t_start, s.t_end) for s in segments]
+            return track_video(
+                ingest, self._frame_detector(targets), embedder, vlm, trace, targets, windows
+            )
 
         services = Services(
             index=session.index,
@@ -730,4 +777,7 @@ def _evidence(result: ResultSet | None, events: list[TraceEvent]) -> Evidence:
 
 def build_engine(profile_name: str | None = None) -> Engine:
     """Engine for the active profile (`DISCERN_PROFILE` when no name is given)."""
-    return Engine(load_settings(profile_name), load_registry())
+    settings = load_settings(profile_name)
+    return Engine(
+        settings, load_registry(), memory=load_pinned_memory(settings.thresholds.serve)
+    )

@@ -14,7 +14,7 @@ Needs the Milestone 2 plan caches (run scripts/run_ablations_m2.py first).
 
 import argparse
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -27,6 +27,7 @@ from run_ablations_m2 import (  # noqa: E402
     VLM_NAME,
     LazyRestorers,
     free_gpu,
+    no_experience,
     plan_all,
     variant_images,
 )
@@ -137,7 +138,9 @@ def run_dataset(
     registry: Mapping[str, RegistryEntry],
     settings: Settings,
     limit: int,
+    experience_for: Callable[[SceneProfile], str] = no_experience,
 ) -> None:
+    """`experience_for` gives the detector-selection experience for a profile (default none)."""
     restorers = LazyRestorers(manager)
     catalog = [
         DetectorInfo(name=n, capabilities=CAPABILITIES[n], speed_class=registry[n].speed_class)
@@ -195,18 +198,20 @@ def run_dataset(
     for a in gate:
         for c in cached.values():
             c.current = a.image_id
+        profile = profile_from_plan(plans[a.image_id])
         med[a.image_id] = detect_image(
             get_vlm(),
             trace,
             sair[a.image_id],
             targets,
-            profile_from_plan(plans[a.image_id]),
+            profile,
             cached,  # type: ignore[arg-type]
             catalog,
             adjudicate_all=False,
             settings=settings,
             operating_thresholds=op,
             priority=ranked,
+            experience=experience_for(profile),
         )
     extra = {
         "adjudicated_groups": float(sum(1 for e in trace.events if e.node == "adjudicate")),

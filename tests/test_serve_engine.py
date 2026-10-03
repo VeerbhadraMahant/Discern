@@ -1,5 +1,6 @@
 import ast
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
 from types import ModuleType
 from typing import Any
@@ -11,6 +12,9 @@ from PIL import Image as PILImage
 import discern.serve.gpu as gpu_module
 from discern.agent.schemas import SceneProfile
 from discern.config.settings import Settings, load_settings
+from discern.experience.aggregate import Memory, MemoryVersion, OptionStat, write_memory
+from discern.experience.promotion import write_pointer
+from discern.experience.schema import Node
 from discern.feedback.schema import Feedback, feedback_to_labelled_samples
 from discern.models.fakes import (
     FakeDetector,
@@ -23,7 +27,14 @@ from discern.models.manager import RegistryEntry
 from discern.models.registry import load_registry
 from discern.models.roles import Detection
 from discern.query.schemas import ConversationState, Turn
-from discern.serve.engine import Engine, EngineError, LimitError, VideoSession, _seconds
+from discern.serve.engine import (
+    Engine,
+    EngineError,
+    LimitError,
+    VideoSession,
+    _seconds,
+    load_pinned_memory,
+)
 from discern.serve.gpu import gpu
 from discern.serve.session import SessionStore, UploadRejected
 from discern.vision.boxes import Box
@@ -150,6 +161,25 @@ def test_clean_image_rejects_a_file_that_is_not_an_image(tmp_path: Path) -> None
     bad.write_bytes(b"not an image")
     with pytest.raises(EngineError):
         make_engine(tmp_path, FakeVLM([])).clean_image(bad)
+
+
+def test_image_over_the_pixel_cap_is_refused_before_decoding(
+    tmp_path: Path, image_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    serve = SETTINGS.thresholds.serve.model_copy(
+        update={"max_pixels": IMAGE_SIZE[0] * IMAGE_SIZE[1] - 1}
+    )
+    settings = SETTINGS.model_copy(
+        update={"thresholds": SETTINGS.thresholds.model_copy(update={"serve": serve})}
+    )
+
+    def fail(self: PILImage.Image, *args: Any, **kwargs: Any) -> None:
+        raise AssertionError("pixels were decoded")
+
+    monkeypatch.setattr(PILImage.Image, "load", fail)
+    engine = make_engine(tmp_path, FakeVLM([]), settings=settings)
+    with pytest.raises(LimitError, match="pixels"):
+        engine.clean_image(image_path)
 
 
 def test_detect_targets_scales_boxes_back_to_the_original_frame(
@@ -374,6 +404,54 @@ def test_ingest_ask_and_render(tmp_path: Path, clip: Path) -> None:
     assert engine.annotated_video(session, evidence.result_set_id or "").is_file()
 
 
+def frames_scanned(
+    tmp_path: Path, clip: Path, monkeypatch: pytest.MonkeyPatch, query_type: str
+) -> int:
+    """Frames the fast detectors were run on while answering one question about `clip`."""
+    calls: list[int] = []
+    original = FakeDetector.detect
+
+    def counting(self: FakeDetector, image: Any, targets: Any) -> list[Detection]:
+        calls.append(1)
+        return original(self, image, targets)
+
+    monkeypatch.setattr(FakeDetector, "detect", counting)
+    vlm = FakeVLM(
+        [
+            profile_json("normal"),
+            '{"factor": "off", "rationale": "ok"}',
+            '{"caption": "a red box"}',
+            f'{{"query_type": "{query_type}", "targets": ["car"]}}',
+            '{"accept": true, "label": "car", "rationale": "a car"}',
+            '{"answer": "There is 1 car."}',
+        ]
+    )
+    detections = [Detection(box=Box(10, 30, 34, 62), label="car", score=0.9, detector="d")]
+    base = settings_for()
+    index = base.thresholds.index.model_copy(update={"top_segments": 1})
+    settings = base.model_copy(
+        update={"thresholds": base.thresholds.model_copy(update={"index": index})}
+    )
+    engine = make_engine(
+        tmp_path, vlm, settings, embedder=TextColourEmbedder(), detections=detections
+    )
+    session = engine.ingest(clip)
+    calls.clear()
+    _, evidence = engine.ask(session, "question")
+    assert evidence.count == 1  # found inside the segment, so no full-scan fallback ran
+    return len(calls)
+
+
+def test_locate_scans_only_retrieved_segments_but_count_scans_everything(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    frames = [frame_with_box((10, 30, 34, 62)) for _ in range(40)]  # 4 s, 20 sampled frames
+    clip = write_clip(tmp_path / "long.mp4", frames, fps=10)
+    full = frames_scanned(tmp_path / "count", clip, monkeypatch, "count")
+    pruned = frames_scanned(tmp_path / "locate", clip, monkeypatch, "locate")
+    assert 0 < pruned < full
+
+
 def test_failed_ingest_leaves_no_session(tmp_path: Path) -> None:
     broken = tmp_path / "broken.mp4"
     broken.write_bytes(b"not a video")
@@ -462,3 +540,72 @@ def test_gradio_blocks_expire_their_cache_with_the_session(tmp_path: Path) -> No
     serve = SETTINGS.thresholds.serve
     demo = build_app(make_engine(tmp_path, FakeVLM([])))
     assert demo.delete_cache == (int(serve.cleanup_interval_seconds), int(serve.ttl_seconds))
+
+
+# ---- experience (DetAS-X) ---------------------------------------------------------------------
+
+
+def synthetic_memory(version_id: str = "v1") -> Memory:
+    key = SceneProfile.model_validate_json(profile_json("fog")).key
+
+    def stat(node: Node, option: str, mean: float) -> OptionStat:
+        return OptionStat(
+            profile_key=key, query_type="detect", node=node, option=option, mean=mean, std=0.0,
+            count=14,
+        )
+
+    stats = (
+        stat("restorer", "dehaze", 0.52),
+        stat("restorer", "none", 0.47),
+        stat("sr", "4", 0.6),
+        stat("sr", "off", 0.5),
+        stat("detector_set", "yolo-world-v2+owlv2-base", 0.7),
+    )
+    version = MemoryVersion(
+        id=version_id, created=datetime(2026, 1, 1, tzinfo=UTC), record_count=5, source_hash="h"
+    )
+    return Memory(version=version, stats=stats)
+
+
+def test_clean_image_injects_experience_into_restorer_and_sr_prompts(
+    tmp_path: Path, image_path: Path
+) -> None:
+    vlm = FakeVLM(CLEAN_SCRIPT)
+    engine = make_engine(tmp_path, vlm)
+    engine.memory = synthetic_memory()
+    engine.clean_image(image_path)
+    restorer_prompt, sr_prompt = vlm.prompts[1], vlm.prompts[3]
+    assert "Similar scenes (1): dehaze F1 0.52 (n=14) vs none 0.47 (n=14)" in restorer_prompt
+    assert "Similar scenes (1): 4 F1 0.60 (n=14) vs off 0.50 (n=14)" in sr_prompt
+
+
+def test_detect_targets_injects_experience_into_the_detector_prompt(
+    tmp_path: Path, image_path: Path
+) -> None:
+    vlm = FakeVLM(CLEAN_SCRIPT + DETECT_SCRIPT)
+    engine = make_engine(tmp_path, vlm, detections=[detection("yolo-world-v2")])
+    engine.memory = synthetic_memory()
+    engine.detect_targets(engine.clean_image(image_path), ["car"])
+    assert "Similar scenes (1): yolo-world-v2+owlv2-base F1 0.70 (n=14)" in vlm.prompts[4]
+
+
+def test_prompts_are_unchanged_without_memory(tmp_path: Path, image_path: Path) -> None:
+    with_none = FakeVLM(CLEAN_SCRIPT + DETECT_SCRIPT)
+    engine = make_engine(tmp_path / "a", with_none, detections=[detection("yolo-world-v2")])
+    engine.detect_targets(engine.clean_image(image_path), ["car"])
+    with_memory = FakeVLM(CLEAN_SCRIPT + DETECT_SCRIPT)
+    other = make_engine(tmp_path / "b", with_memory, detections=[detection("yolo-world-v2")])
+    other.memory = synthetic_memory()
+    other.detect_targets(other.clean_image(image_path), ["car"])
+    assert with_none.prompts != with_memory.prompts
+    assert not any("Similar scenes" in p for p in with_none.prompts)
+
+
+def test_pinned_memory_is_loaded_through_the_pointer_file(tmp_path: Path) -> None:
+    serve = SETTINGS.thresholds.serve.model_copy(update={"memory_dir": str(tmp_path)})
+    assert load_pinned_memory(serve) is None  # no pointer
+    write_pointer(tmp_path / serve.memory_pointer, "v1")
+    assert load_pinned_memory(serve) is None  # pointer names a missing file
+    write_memory(synthetic_memory("v1"), tmp_path)
+    memory = load_pinned_memory(serve)
+    assert memory is not None and memory.version.id == "v1"

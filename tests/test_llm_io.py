@@ -66,15 +66,18 @@ def test_invalid_twice_falls_back() -> None:
 class OutOfMemoryVLM(FakeVLM):
     """Raises on the given 0-based call numbers (torch's CUDA OOM is a RuntimeError)."""
 
-    def __init__(self, responses: list[str], fail_on: set[int]) -> None:
+    def __init__(
+        self, responses: list[str], fail_on: set[int], error: type[Exception] = RuntimeError
+    ) -> None:
         super().__init__(responses)
         self._fail_on = fail_on
+        self._error = error
         self._calls = 0
 
     def generate(self, prompt: str, images: Sequence[Image] = ()) -> str:
         call, self._calls = self._calls, self._calls + 1
         if call in self._fail_on:
-            raise RuntimeError("CUDA out of memory")
+            raise self._error("CUDA out of memory")
         return super().generate(prompt, images)
 
 
@@ -86,6 +89,18 @@ def test_vlm_runtime_error_falls_back_instead_of_crashing() -> None:
 
 def test_vlm_runtime_error_during_repair_falls_back() -> None:
     out, trace = run(OutOfMemoryVLM(["not json"], {1}))
+    assert out == FALLBACK
+    assert trace.events[0].fallback_used is True
+
+
+def test_vlm_value_error_falls_back_instead_of_crashing() -> None:
+    out, trace = run(OutOfMemoryVLM([], {0}, ValueError))
+    assert out == FALLBACK
+    assert trace.events[0].fallback_used is True
+
+
+def test_vlm_value_error_during_repair_falls_back() -> None:
+    out, trace = run(OutOfMemoryVLM(["not json"], {1}, ValueError))
     assert out == FALLBACK
     assert trace.events[0].fallback_used is True
 

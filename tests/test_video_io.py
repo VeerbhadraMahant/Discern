@@ -2,7 +2,13 @@ from pathlib import Path
 
 import pytest
 
-from discern.video.io import iter_sampled_frames, probe, validate, working_size
+from discern.video.io import (
+    decode_limit,
+    iter_sampled_frames,
+    probe,
+    validate,
+    working_size,
+)
 from discern.video.types import VideoError
 from discern.vision.boxes import Box
 from tests.synth_video import (
@@ -69,6 +75,17 @@ def test_validate_rejects_long_videos(clip: Path) -> None:
     short = settings.profile.model_copy(update={"max_video_seconds": 3})
     with pytest.raises(VideoError, match="allows at most 3s"):
         validate(probe(clip), short)
+
+
+def test_decoding_stops_when_decoded_time_exceeds_the_limit(clip: Path) -> None:
+    with pytest.raises(VideoError, match="runs past 3s"):
+        list(iter_sampled_frames(clip, 5.0, 1280, max_seconds=3.0))
+    assert len(list(iter_sampled_frames(clip, 5.0, 1280, max_seconds=10.0))) == 30
+
+
+def test_decode_limit_is_max_duration_plus_the_configured_margin() -> None:
+    settings = settings_for(duration_margin_seconds=2.5)
+    assert decode_limit(settings) == settings.profile.max_video_seconds + 2.5
 
 
 def test_missing_and_corrupt_files_raise_clear_errors(tmp_path: Path) -> None:

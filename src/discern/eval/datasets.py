@@ -99,10 +99,13 @@ def coco_to_annotated(
     id_prefix: str = "",
 ) -> list[AnnotatedImage]:
     """Convert a COCO-format dict (absolute xywh boxes). Categories missing from
-    `label_map` are dropped, and images left without objects are skipped."""
+    `label_map` are dropped, crowd annotations (`iscrowd` set) are not instances and are dropped,
+    and images left without objects are skipped."""
     names = {c["id"]: c["name"] for c in coco["categories"]}
     objects: dict[int, list[GroundTruthBox]] = {}
     for ann in coco["annotations"]:
+        if ann.get("iscrowd"):
+            continue
         label = label_map.get(names[ann["category_id"]])
         if label is None:
             continue

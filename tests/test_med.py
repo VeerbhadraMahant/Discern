@@ -242,6 +242,27 @@ def test_operating_thresholds_are_per_detector() -> None:
     assert run(vlm, dets, adjudicate_on=False) == [A, low]  # default 0.25 keeps 0.3
 
 
+def test_default_operating_threshold_comes_from_config() -> None:
+    low = det((200, 30, 240, 70), 0.3, "fast_det")
+    agent = SETTINGS.thresholds.agent.model_copy(update={"default_operating_threshold": 0.5})
+    strict = SETTINGS.model_copy(
+        update={"thresholds": SETTINGS.thresholds.model_copy(update={"agent": agent})}
+    )
+    out = detect_image(
+        FakeVLM([choice_json("acc_det", "fast_det")]),
+        TraceCollector(),
+        image(),
+        TARGETS,
+        PROFILE,
+        detectors(acc_det=[A], fast_det=[low]),  # type: ignore[arg-type]
+        CATALOG,
+        adjudicate=False,
+        settings=strict,
+        priority=PRIORITY,
+    )
+    assert out == [A]
+
+
 def test_top_k_selection_runs_only_chosen_detectors() -> None:
     other = det((200, 30, 240, 70), 0.9, "dense_det")
     dets = detectors(acc_det=[A], fast_det=[B], dense_det=[other])

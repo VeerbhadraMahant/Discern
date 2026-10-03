@@ -39,10 +39,6 @@ def _cache(name: str, dataset: str, revision: str, split: str) -> Path:
     return cache_path(name, f"{dataset}-{split}", revision)
 
 
-def _cache(name: str, dataset: str, revision: str, split: str) -> Path:
-    return cache_path(name, f"{dataset}-{split}", revision)
-
-
 def main(detectors: list[str]) -> list[EvalResult]:
     registry = load_registry()
     settings = load_settings()

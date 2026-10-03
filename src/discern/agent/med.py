@@ -10,8 +10,6 @@ from discern.models.roles import SCORE_FLOOR, VLM, Detection, Detector, Image
 from discern.trace import TraceCollector
 from discern.vision.grouping import group_detections
 
-DEFAULT_OPERATING_THRESHOLD = 0.25
-
 
 def detect_image(
     vlm: VLM,
@@ -35,6 +33,7 @@ def detect_image(
     """
     settings = settings or load_settings()
     thresholds = operating_thresholds or {}
+    default_floor = settings.thresholds.agent.default_operating_threshold
     available = [d for d in catalog if d.name in detectors]
     choice = detector_select(
         vlm, trace, targets, profile, available, priority, experience, settings
@@ -48,7 +47,7 @@ def detect_image(
             if detector is None:
                 span.rationale += f"missing detector {name}; "
                 continue
-            floor = max(thresholds.get(name, DEFAULT_OPERATING_THRESHOLD), SCORE_FLOOR)
+            floor = max(thresholds.get(name, default_floor), SCORE_FLOOR)
             pooled.extend(d for d in detector.detect(image, targets) if d.score >= floor)
         span.decision = f"{len(pooled)} detections above operating thresholds"
 

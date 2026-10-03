@@ -1,13 +1,12 @@
 name: gate
 
-# Runs the GPU evaluation gate (system-design 10.3) on a SELF-HOSTED runner, only on pushes to
-# main and manual dispatch. It must never run on pull_request: a self-hosted runner executes
-# whatever code the trigger carries, so untrusted PR code must not reach it.
+# Runs the GPU evaluation gate (system-design 10.3) on a SELF-HOSTED runner. It must never run on
+# pull_request: a self-hosted runner executes whatever code the trigger carries, so untrusted PR
+# code must not reach it. Manual dispatch only for now: with no runner registered a push trigger
+# would just leave a queued run. After registering the runner, add `push: branches: [main]`.
 # The runner must be registered by the repo owner (Settings > Actions > Runners) with the
 # labels below; nothing in this repository registers it.
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 
 permissions:

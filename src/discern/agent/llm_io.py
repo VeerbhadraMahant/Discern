@@ -63,10 +63,11 @@ def _parse[T: BaseModel](text: str, schema: type[T]) -> T:
 
 
 def _generate(vlm: VLM, text: str, images: Sequence[Image]) -> str | None:
-    """One VLM call. A runtime failure (CUDA out-of-memory is a RuntimeError) gives None."""
+    """One VLM call. A runtime failure (CUDA out-of-memory is a RuntimeError) or a processor
+    rejecting the input (extreme aspect-ratio crops raise ValueError) gives None."""
     try:
         return vlm.generate(text, images)
-    except RuntimeError:
+    except (RuntimeError, ValueError):
         logger.exception("VLM call failed")
         return None
 
