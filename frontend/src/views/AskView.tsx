@@ -1,4 +1,4 @@
-import { PaperPlaneRight, Question } from "@phosphor-icons/react";
+import { PaperPlaneRight, Question, WarningCircle } from "@phosphor-icons/react";
 import { useId, useRef, useState } from "react";
 import type { FormEvent, KeyboardEvent } from "react";
 import { toDiscernError } from "../api/errors";
@@ -7,7 +7,7 @@ import { Banner } from "../components/Layout";
 import { TrackCard } from "../components/TrackCard";
 import { VideoPlayer } from "../components/VideoPlayer";
 import type { PlayerHandle } from "../components/VideoPlayer";
-import { Button, Card, EmptyState, ErrorNotice, Skeleton, Stamp, inputClass } from "../components/ui";
+import { Button, Card, EmptyState, ErrorNotice, Skeleton, inputClass } from "../components/ui";
 import { useDiscern } from "../state/DiscernContext";
 import type { ChatTurn } from "../state/DiscernContext";
 
@@ -21,14 +21,19 @@ function AssistantTurn({ turn, selected, onSelect }: { turn: ChatTurn; selected:
   return (
     <Card className={`rise flex flex-col gap-3 ${selected ? "outline outline-2 outline-ink" : ""}`}>
       {clarification && (
-        <p className="flex items-center gap-2 font-semibold">
+        <p className="type-label flex items-center gap-2">
           <Question size={20} aria-hidden="true" />
           Discern needs one more detail
         </p>
       )}
-      <p className={clarification ? "font-display text-subhead leading-tight tracking-[-0.02em]" : ""}>{turn.text}</p>
+      <p className={clarification ? "type-body-l" : ""}>{turn.text}</p>
       <div className="flex flex-wrap items-center gap-4">
-        {ungrounded && <Stamp>ungrounded</Stamp>}
+        {ungrounded && (
+          <p className="type-label flex items-center gap-1">
+            <WarningCircle size={20} className="text-ember" aria-hidden="true" />
+            Not grounded in detections
+          </p>
+        )}
         {hasEvidence && (
           <Button variant="link" onClick={onSelect} aria-pressed={selected}>
             {selected ? "Evidence shown" : "Show evidence"}
@@ -93,7 +98,7 @@ export function AskView() {
 
   return (
     <>
-      <Banner title="ASK" kicker="Ask a question about the video. Every answer shows the evidence it rests on." />
+      <Banner title="Ask" kicker="Ask a question about the video. Every answer shows the evidence it rests on." />
       <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-8">
         {!session ? (
           <EmptyState title="Nothing to ask about yet">
@@ -107,7 +112,7 @@ export function AskView() {
         ) : (
           <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
             <section aria-labelledby="media-h" className="flex flex-col gap-4">
-              <h2 id="media-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+              <h2 id="media-h" className="type-h2">
                 Video
               </h2>
               {videoUrl ? (
@@ -132,7 +137,7 @@ export function AskView() {
             </section>
 
             <section aria-labelledby="chat-h" className="flex flex-col gap-4">
-              <h2 id="chat-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+              <h2 id="chat-h" className="type-h2">
                 Conversation
               </h2>
               <div aria-live="polite" className="sr-only">
@@ -185,7 +190,7 @@ export function AskView() {
                   className={inputClass}
                   aria-describedby={`${inputId}-help`}
                 />
-                <p id={`${inputId}-help`} className="text-caption font-normal">
+                <p id={`${inputId}-help`} className="type-body-s">
                   Enter sends, Shift+Enter adds a new line.
                   {maxQueries !== null && ` Questions used: ${asked} of ${maxQueries}.`}
                 </p>
@@ -205,7 +210,7 @@ export function AskView() {
             </section>
 
             <section aria-labelledby="ev-h" className="flex flex-col gap-4">
-              <h2 id="ev-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+              <h2 id="ev-h" className="type-h2">
                 Evidence
               </h2>
               {shown?.response ? (

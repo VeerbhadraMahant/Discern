@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { useDiscern } from "./state/DiscernContext";
 import { Header, Toast } from "./components/Layout";
 import { useHashRoute } from "./lib/route";
@@ -9,7 +9,10 @@ import { CleanView } from "./views/CleanView";
 import { FeedbackView } from "./views/FeedbackView";
 import { TraceView } from "./views/TraceView";
 
+const Landing = lazy(() => import("./landing/Landing"));
+
 const TITLES: Record<Route, string> = {
+  home: "Ask a video a question, see the evidence",
   clean: "Clean",
   ask: "Ask",
   trace: "Trace",
@@ -24,7 +27,7 @@ export function Shell() {
   const first = useRef(true);
 
   useEffect(() => {
-    document.title = `${TITLES[route]} | Discern`;
+    document.title = route === "home" ? `Discern | ${TITLES.home}` : `${TITLES[route]} | Discern`;
     if (first.current) {
       first.current = false;
       return;
@@ -44,19 +47,27 @@ export function Shell() {
       >
         Skip to main content
       </a>
-      <Header route={route} />
-      <main id="main" ref={main} tabIndex={-1}>
-        {badSpace && (
-          <p role="alert" className="mx-auto max-w-[1440px] px-4 py-3 font-semibold md:px-8">
-            The space address in the link was ignored: only a hf.space address or a local server is accepted.
-          </p>
-        )}
-        {route === "clean" && <CleanView />}
-        {route === "ask" && <AskView />}
-        {route === "trace" && <TraceView />}
-        {route === "feedback" && <FeedbackView />}
-        {route === "about" && <AboutView />}
-      </main>
+      {route === "home" ? (
+        <Suspense fallback={<div className="min-h-dvh" role="status" aria-label="Loading" />}>
+          <Landing main={main} />
+        </Suspense>
+      ) : (
+        <>
+          <Header route={route} />
+          <main id="main" ref={main} tabIndex={-1}>
+            {badSpace && (
+              <p role="alert" className="mx-auto max-w-[1440px] px-4 py-3 font-semibold md:px-8">
+                The space address in the link was ignored: only a hf.space address or a local server is accepted.
+              </p>
+            )}
+            {route === "clean" && <CleanView />}
+            {route === "ask" && <AskView />}
+            {route === "trace" && <TraceView />}
+            {route === "feedback" && <FeedbackView />}
+            {route === "about" && <AboutView />}
+          </main>
+        </>
+      )}
       <Toast />
     </div>
   );

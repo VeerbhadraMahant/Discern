@@ -44,7 +44,7 @@ export function FeedbackView() {
   if (!session || sets.length === 0) {
     return (
       <>
-        <Banner title="FEEDBACK" kicker="Tell us when an answer was right, wrong or missing something." />
+        <Banner title="Feedback" kicker="Tell us when an answer was right, wrong or missing something." />
         <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-8">
           <EmptyState title="No results to rate yet">
             <p>Ask a question on the Ask tab. A grounded answer gives you a result set to give feedback on.</p>
@@ -91,11 +91,11 @@ export function FeedbackView() {
 
   return (
     <>
-      <Banner title="FEEDBACK" kicker="Tell us when an answer was right, wrong or missing something." />
+      <Banner title="Feedback" kicker="Tell us when an answer was right, wrong or missing something." />
       <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-8">
         <Card as="section" aria-labelledby="fb-h" className="max-w-2xl">
           <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-6" noValidate>
-            <h2 id="fb-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+            <h2 id="fb-h" className="type-h2">
               Your feedback
             </h2>
             <Field id={`${uid}-set`} label="Result set">
@@ -147,7 +147,7 @@ export function FeedbackView() {
                 />
                 Allow Discern to keep my media for improving the system
               </label>
-              <p id={`${uid}-retain-help`} className="pl-8 text-caption font-normal">
+              <p id={`${uid}-retain-help`} className="pl-8 type-body-s">
                 {ttl ? `Without this, your files and results are deleted automatically after ${ttl}, or sooner when you press Start over.` : "Without this, your files and results are deleted automatically when your session expires."}{" "}
                 With it, your uploaded media and this feedback are kept after that time and may be used to improve Discern.
               </p>

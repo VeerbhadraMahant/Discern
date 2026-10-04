@@ -52,11 +52,11 @@ export function BeforeAfter({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <figure className="flex flex-col gap-2">
             <img src={beforeUrl} alt={beforeAlt} className="block w-full bg-ink" />
-            <figcaption className="text-caption font-normal">Before</figcaption>
+            <figcaption className="type-body-s">Before</figcaption>
           </figure>
           <figure className="flex flex-col gap-2">
             <img src={afterUrl} alt={afterAlt} className="block w-full bg-ink" />
-            <figcaption className="text-caption font-normal">After</figcaption>
+            <figcaption className="type-body-s">After</figcaption>
           </figure>
         </div>
       )}

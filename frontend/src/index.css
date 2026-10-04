@@ -1,5 +1,39 @@
 @import "tailwindcss";
 
+/* Fonts are self-hosted (see public/fonts/LICENSES.md). The mono face is only fetched when literal machine output is on screen. */
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/ibm-plex-sans-latin-wdth-normal.woff2") format("woff2");
+  font-weight: 100 700;
+  font-stretch: 75% 100%;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "IBM Plex Mono";
+  src: url("/fonts/ibm-plex-mono-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Bricolage Grotesque";
+  src: url("/fonts/bricolage-grotesque-82-700-latin.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+/* Fallback for the display face: the installed Arial Narrow Bold, scaled to Bricolage's measured metrics so the hero does not shift. */
+@font-face {
+  font-family: "Arial Narrow";
+  src: local("Arial Narrow Bold"), local("ArialNarrow-Bold"), local("Arial-NarrowBold");
+  font-weight: 700;
+  size-adjust: 88.77%;
+  ascent-override: 104.77%;
+  descent-override: 30.42%;
+  line-gap-override: 0%;
+}
+
 @theme {
   --color-parchment: #e2dedb;
   --color-bone: #cdc6be;
@@ -8,43 +42,186 @@
   --color-black: #000000;
   --color-ember: #c03f13;
 
-  --font-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
-  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  /* docs/typography.md section 2: font tokens and fallback stacks */
+  --font-display: "Bricolage Grotesque", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
   --radius-tag: 2.88px;
   --radius-card: 11.52px;
 
   --shadow-card: rgba(29, 29, 27, 0.2) -4px 4px 6px 0;
 
-  --text-caption: 14px;
-  --text-subhead: 22px;
-  --text-heading-sm: 32px;
-  --text-heading: 65px;
+  /* docs/typography.md section 3: type scale (rem; the two display roles are fluid from 375px to 1440px) */
+  --text-display-xl: clamp(2.5rem, 1.796rem + 3.005vw, 4.5rem);
+  --text-display-xl--line-height: 1;
+  --text-display-xl--letter-spacing: -0.01em;
+  --text-display-xl--font-weight: 700;
+  --text-display-l: clamp(2.25rem, 1.986rem + 1.127vw, 3rem);
+  --text-display-l--line-height: 1.05;
+  --text-display-l--letter-spacing: 0;
+  --text-display-l--font-weight: 700;
+  --text-wordmark: 1.75rem;
+  --text-wordmark--line-height: 1.1;
+  --text-wordmark--letter-spacing: 0;
+  --text-wordmark--font-weight: 700;
+  --text-h1: 1.5rem;
+  --text-h1--line-height: 1.25;
+  --text-h1--letter-spacing: 0;
+  --text-h1--font-weight: 600;
+  --text-h2: 1.3125rem;
+  --text-h2--line-height: 1.3;
+  --text-h2--letter-spacing: 0;
+  --text-h2--font-weight: 600;
+  --text-h3: 1.125rem;
+  --text-h3--line-height: 1.35;
+  --text-h3--letter-spacing: 0;
+  --text-h3--font-weight: 600;
+  --text-body-l: 1.125rem;
+  --text-body-l--line-height: 1.6;
+  --text-body-l--letter-spacing: 0;
+  --text-body-l--font-weight: 400;
+  --text-body: 1rem;
+  --text-body--line-height: 1.55;
+  --text-body--letter-spacing: 0;
+  --text-body--font-weight: 400;
+  --text-body-s: 0.875rem;
+  --text-body-s--line-height: 1.45;
+  --text-body-s--letter-spacing: 0;
+  --text-body-s--font-weight: 400;
+  --text-label: 0.875rem;
+  --text-label--line-height: 1.3;
+  --text-label--letter-spacing: 0;
+  --text-label--font-weight: 500;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.4;
+  --text-caption--letter-spacing: 0.01em;
+  --text-caption--font-weight: 400;
+  --text-data-narrow: 0.875rem;
+  --text-data-narrow--line-height: 1.3;
+  --text-data-narrow--letter-spacing: 0;
+  --text-data-narrow--font-weight: 400;
+  --text-code: 0.875rem;
+  --text-code--line-height: 1.5;
+  --text-code--letter-spacing: 0;
+  --text-code--font-weight: 400;
+}
+
+/* One utility per type token. Components use these and never raw font names or sizes. */
+@utility type-display-xl {
+  font-family: var(--font-display);
+  font-size: var(--text-display-xl);
+  line-height: var(--text-display-xl--line-height);
+  letter-spacing: var(--text-display-xl--letter-spacing);
+  font-weight: var(--text-display-xl--font-weight);
+}
+@utility type-display-l {
+  font-family: var(--font-display);
+  font-size: var(--text-display-l);
+  line-height: var(--text-display-l--line-height);
+  letter-spacing: var(--text-display-l--letter-spacing);
+  font-weight: var(--text-display-l--font-weight);
+}
+@utility type-wordmark {
+  font-family: var(--font-display);
+  font-size: var(--text-wordmark);
+  line-height: var(--text-wordmark--line-height);
+  letter-spacing: var(--text-wordmark--letter-spacing);
+  font-weight: var(--text-wordmark--font-weight);
+}
+@utility type-h1 {
+  font-family: var(--font-sans);
+  font-size: var(--text-h1);
+  line-height: var(--text-h1--line-height);
+  letter-spacing: var(--text-h1--letter-spacing);
+  font-weight: var(--text-h1--font-weight);
+}
+@utility type-h2 {
+  font-family: var(--font-sans);
+  font-size: var(--text-h2);
+  line-height: var(--text-h2--line-height);
+  letter-spacing: var(--text-h2--letter-spacing);
+  font-weight: var(--text-h2--font-weight);
+}
+@utility type-h3 {
+  font-family: var(--font-sans);
+  font-size: var(--text-h3);
+  line-height: var(--text-h3--line-height);
+  letter-spacing: var(--text-h3--letter-spacing);
+  font-weight: var(--text-h3--font-weight);
+}
+@utility type-body-l {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-l);
+  line-height: var(--text-body-l--line-height);
+  letter-spacing: var(--text-body-l--letter-spacing);
+  font-weight: var(--text-body-l--font-weight);
+}
+@utility type-body {
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  letter-spacing: var(--text-body--letter-spacing);
+  font-weight: var(--text-body--font-weight);
+}
+@utility type-body-s {
+  font-family: var(--font-sans);
+  font-size: var(--text-body-s);
+  line-height: var(--text-body-s--line-height);
+  letter-spacing: var(--text-body-s--letter-spacing);
+  font-weight: var(--text-body-s--font-weight);
+}
+@utility type-label {
+  font-family: var(--font-sans);
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
+  letter-spacing: var(--text-label--letter-spacing);
+  font-weight: var(--text-label--font-weight);
+}
+@utility type-caption {
+  font-family: var(--font-sans);
+  font-size: var(--text-caption);
+  line-height: var(--text-caption--line-height);
+  letter-spacing: var(--text-caption--letter-spacing);
+  font-weight: var(--text-caption--font-weight);
+}
+@utility type-data-narrow {
+  font-family: var(--font-sans);
+  font-size: var(--text-data-narrow);
+  line-height: var(--text-data-narrow--line-height);
+  letter-spacing: var(--text-data-narrow--letter-spacing);
+  font-weight: var(--text-data-narrow--font-weight);
+  font-stretch: 85%;
+}
+@utility type-code {
+  font-family: var(--font-mono);
+  font-size: var(--text-code);
+  line-height: var(--text-code--line-height);
+  letter-spacing: var(--text-code--letter-spacing);
+  font-weight: var(--text-code--font-weight);
 }
 
 @layer base {
   html {
     background: var(--color-parchment);
     color: var(--color-ink);
-    font-family: var(--font-body);
-    font-size: 16px;
+    font-family: var(--font-sans);
+    font-size: 100%;
     -webkit-text-size-adjust: 100%;
   }
   body {
     margin: 0;
     min-height: 100dvh;
     background: var(--color-parchment);
+    font-family: var(--font-sans);
+    font-size: var(--text-body);
     font-weight: 400;
-    line-height: 1.5;
-    letter-spacing: -0.01em;
+    line-height: var(--text-body--line-height);
     overflow-x: hidden;
   }
   h1, h2, h3 {
-    font-family: var(--font-display);
-    font-weight: 400;
-  }
-  small, .caption {
-    font-weight: 400;
+    font-family: var(--font-sans);
+    font-weight: 600;
   }
   button, input, textarea, select {
     font: inherit;
@@ -79,9 +256,16 @@
   .num {
     font-variant-numeric: tabular-nums;
   }
+  /* Identifiers (track ids, model ids): ask for the slashed zero where the font provides it. */
+  .ident {
+    font-feature-settings: "zero" 1;
+  }
   .skeleton {
     background: var(--color-bone);
     border-radius: var(--radius-tag);
+  }
+  .measure {
+    max-width: 68ch;
   }
 }
 
@@ -99,6 +283,32 @@
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
+
+  /* The one orchestrated moment on the landing page: the hero headline resolves from a degraded look
+     (a brief soft focus plus grain) to sharp, once, in about 500ms. The text is real DOM text throughout and
+     is fully readable if this never runs, because the keyframes only describe the start of the animation. */
+  .hero-resolve {
+    animation: resolve 500ms ease-out 1 both;
+  }
+  .hero-grain {
+    animation: grain-out 500ms ease-out 1 both;
+  }
+  @keyframes resolve {
+    from { filter: blur(6px); }
+    to { filter: none; }
+  }
+  @keyframes grain-out {
+    from { opacity: 0.55; }
+    to { opacity: 0; }
+  }
+}
+
+.hero-grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.89 0 0 0 0 0.87 0 0 0 0 0.86 0 0 0 1.4 -0.2'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
 }
 
 @media (prefers-reduced-motion: reduce) {

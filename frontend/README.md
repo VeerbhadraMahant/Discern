@@ -52,7 +52,14 @@ Query parameters: `?space=<url>` and `?mock=1` (or `?mock=0` to turn a build-tim
 | `npm run lint` | ESLint |
 | `npm test -- --run` | Vitest (API client, mock conformance, components, routing, contrast and style guardrails) |
 
-Tabs are hash-routed (`#/clean`, `#/ask`, `#/trace`, `#/feedback`, `#/about`), so each is deep-linkable.
+The landing page is the default route (`#/`, an empty hash, or an in-page anchor); the tabs are hash-routed
+(`#/clean`, `#/ask`, `#/trace`, `#/feedback`, `#/about`), so each is deep-linkable. "Try with demo data" links to
+`?mock=1#/clean`. The landing page is code-split (`src/landing/`, loaded with `React.lazy`) and renders every claim from
+`src/landing/facts.ts`, which cites the repository README per item.
+
+Typography follows [../docs/typography.md](../docs/typography.md): Bricolage Grotesque (static instance) for the landing hero,
+section headings and the wordmark, IBM Plex Sans for everything else, IBM Plex Mono for literal machine output. Fonts are
+self-hosted in `public/fonts` with their licenses in `public/fonts/LICENSES.md`.
 
 ## Deploying
 
@@ -69,6 +76,10 @@ Desktop: [clean](screenshots/desktop-clean.png), [ask](screenshots/desktop-ask.p
 Phone (375 px): [clean](screenshots/phone-clean.png), [ask](screenshots/phone-ask.png),
 [trace](screenshots/phone-trace.png), [feedback](screenshots/phone-feedback.png),
 [about](screenshots/phone-about.png).
+
+Landing page, desktop: [hero](screenshots/landing-desktop-hero.png), [numbers](screenshots/landing-desktop-numbers.png),
+[results](screenshots/landing-desktop-results.png), [query types](screenshots/landing-desktop-queries.png).
+Landing page, phone: [hero](screenshots/landing-phone-hero.png), [numbers](screenshots/landing-phone-numbers.png).
 
 ## Deviations from MASTER.md
 

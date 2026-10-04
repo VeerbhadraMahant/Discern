@@ -55,7 +55,7 @@ export function Card({
 /** Status stamp. Outlined in ember with ink text, because ember text on parchment is below 4.5:1. */
 export function Stamp({ children, icon }: { children: ReactNode; icon?: ReactNode }) {
   return (
-    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-tag border-2 border-ember bg-parchment px-2 py-0.5 text-caption font-semibold uppercase tracking-wide text-ink">
+    <span className="inline-flex items-center gap-1 whitespace-nowrap rounded-tag border-2 border-ember bg-parchment px-2 py-0.5 type-label text-ink">
       {icon}
       {children}
     </span>
@@ -82,12 +82,12 @@ export function Field({
       </label>
       {children}
       {helper && (
-        <p id={`${id}-help`} className="text-caption font-normal">
+        <p id={`${id}-help`} className="type-body-s">
           {helper}
         </p>
       )}
       {error && (
-        <p id={`${id}-err`} role="alert" className="flex items-start gap-1 text-caption font-semibold">
+        <p id={`${id}-err`} role="alert" className="flex items-start gap-1 type-label">
           <WarningCircle size={20} className="shrink-0 text-ember" aria-hidden="true" />
           <span>{error}</span>
         </p>
@@ -142,7 +142,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <Card className="flex flex-col gap-2">
-      <h2 className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">{title}</h2>
+      <h2 className="type-h2">{title}</h2>
       {children}
     </Card>
   );

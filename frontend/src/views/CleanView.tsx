@@ -6,7 +6,7 @@ import { ProfileList, Timeline } from "../components/Decisions";
 import { DropZone } from "../components/DropZone";
 import { Banner } from "../components/Layout";
 import { Button, Card, ErrorNotice, Field, ProgressBar, Skeleton, inputClass } from "../components/ui";
-import { formatBytes, formatRange } from "../lib/format";
+import { formatBytes, formatRange, formatTime } from "../lib/format";
 import { useDiscern } from "../state/DiscernContext";
 
 function DetectPanel() {
@@ -20,7 +20,7 @@ function DetectPanel() {
   };
   return (
     <Card as="section" aria-labelledby={`${id}-h`} className="flex flex-col gap-4">
-      <h2 id={`${id}-h`} className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+      <h2 id={`${id}-h`} className="type-h2">
         Detect objects
       </h2>
       <form onSubmit={submit} className="flex flex-col gap-4">
@@ -45,7 +45,7 @@ function DetectPanel() {
                 <li key={i} className="flex flex-wrap justify-between gap-2 py-2">
                   <span className="font-semibold">{d.label}</span>
                   <span className="num font-normal">
-                    score {d.score.toFixed(2)}, {d.detector}
+                    confidence {Math.round(d.score * 100)}%, {d.detector}
                   </span>
                 </li>
               ))}
@@ -63,17 +63,17 @@ function ShotCards() {
   if (!done) return null;
   return (
     <section aria-labelledby="shots-h" className="flex flex-col gap-4">
-      <h2 id="shots-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+      <h2 id="shots-h" className="type-h2">
         Shots
       </h2>
       <p className="num font-normal">
-        {done.shots.length} {done.shots.length === 1 ? "shot" : "shots"}, {done.duration.toFixed(1)} s, {done.width} by {done.height} at {done.fps} fps
+        {done.shots.length} {done.shots.length === 1 ? "shot" : "shots"}, {formatTime(done.duration)} long, {done.width} by {done.height} at {done.fps} fps
       </p>
       <ul className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {done.shots.map((s) => (
           <Card as="li" key={s.id} className="flex flex-col gap-4">
-            <h3 className="font-display text-subhead leading-none tracking-[-0.04em]">
-              Shot {Number(s.id) + 1 || String(s.id)} <span className="num font-body text-base font-normal">{formatRange(s.t_start, s.t_end)}</span>
+            <h3 className="type-h3">
+              Shot {Number(s.id) + 1 || String(s.id)} <span className="num ident">{formatRange(s.t_start, s.t_end)}</span>
             </h3>
             <BeforeAfter
               beforeUrl={s.before_url}
@@ -97,10 +97,10 @@ export function CleanView() {
 
   return (
     <>
-      <Banner title="CLEAN" kicker="Upload an image or a video and see how Discern cleans it, step by step." />
+      <Banner title="Clean" kicker="Upload an image or a video and see how Discern cleans it, step by step." />
       <div className="mx-auto flex max-w-[1440px] flex-col gap-10 px-4 py-10 md:px-8">
         <Card as="section" aria-labelledby="up-h" className="flex flex-col gap-4">
-          <h2 id="up-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+          <h2 id="up-h" className="type-h2">
             Your file
           </h2>
           <DropZone limits={info?.limits ?? null} disabled={working || !info} onFile={(f) => void uploadFile(f)} />
@@ -129,7 +129,7 @@ export function CleanView() {
             )}
             {clean && phase !== "cleaning" && (
               <Card as="section" aria-labelledby="clean-h" className="flex flex-col gap-6">
-                <h2 id="clean-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+                <h2 id="clean-h" className="type-h2">
                   Before and after
                 </h2>
                 <BeforeAfter beforeUrl={clean.original_url} afterUrl={clean.cleaned_url} beforeAlt="Original image before cleaning" afterAlt="Image after cleaning" />

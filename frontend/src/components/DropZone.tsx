@@ -69,7 +69,7 @@ export function DropZone({
         } ${disabled ? "cursor-not-allowed opacity-45" : "cursor-pointer"} has-[:focus-visible]:outline-3 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-ember`}
       >
         <UploadSimple size={24} aria-hidden="true" />
-        <span className="max-w-[40ch] text-subhead leading-tight">Drop an image or video, or choose a file</span>
+        <span className="max-w-[40ch] type-body-l">Drop an image or video, or choose a file</span>
         <input
           id={id}
           type="file"

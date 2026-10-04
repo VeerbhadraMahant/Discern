@@ -3,14 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="Discern: ask questions about a video and see the evidence behind each answer." />
-    <title>Discern</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bodoni+Moda:opsz,wght@6..96,400;6..96,500&family=Source+Serif+4:ital,opsz,wght@0,8..60,300;0,8..60,400;0,8..60,600;1,8..60,400&display=swap"
-      rel="stylesheet"
+    <meta
+      name="description"
+      content="Discern is an open-model research prototype: ask questions about a video and see the boxes, tracks and timestamps behind each answer. Work in progress; the hosted Space is not deployed yet."
     />
+    <meta name="theme-color" content="#e2dedb" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Discern" />
+    <meta property="og:title" content="Discern: ask a video a question, see the evidence" />
+    <meta
+      property="og:description"
+      content="An open-model research prototype for grounded video questions. Work in progress; the hosted Space is not deployed yet."
+    />
+    <meta name="twitter:card" content="summary" />
+    <title>Discern | Ask a video a question, see the evidence</title>
+    <link rel="preload" href="/fonts/ibm-plex-sans-latin-wdth-normal.woff2" as="font" type="font/woff2" crossorigin />
+    <script>
+      // Preload the display face only for the landing page (an empty or in-page hash), not for the app tabs.
+      (function () {
+        var tab = /^#\/?(clean|ask|trace|feedback|about)([?/]|$)/.test(location.hash);
+        if (tab) return;
+        var l = document.createElement("link");
+        l.rel = "preload";
+        l.as = "font";
+        l.type = "font/woff2";
+        l.crossOrigin = "anonymous";
+        l.href = "/fonts/bricolage-grotesque-82-700-latin.woff2";
+        document.head.appendChild(l);
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -19,13 +19,17 @@ Colors (never use raw hex in components, only these tokens):
   contrast against parchment is 3.96:1 (fine for large UI marks and borders, not for text), so text on or in ember is ink.
 - State is never color alone: success = ink check icon + word, error = ember border + warning icon + message.
 
-Type (Google Fonts, `font-display: swap`; the reference's commercial faces are replaced by its own listed substitutes):
-- Display: "Bodoni Moda" (weight 400-500) for banners and section titles. Negative tracking
-  (-0.04em to -0.06em), line-height 0.8-0.95. Display line-height must stay below 1.0.
-- Body and UI: "Source Serif 4" weight 400 (the reference's weight 300 was too light for legibility at 16px), 16px base,
-  line-height 1.27-1.5, tracking -0.01em. No sans-serif anywhere.
-- Scale: caption 14, body 16, subheading 22, heading-sm 32, heading 65, heading-lg 122 (banner only, scale down with clamp()).
-- Numbers in tables and timestamps use `font-variant-numeric: tabular-nums`.
+Type: superseded by [docs/typography.md](../../docs/typography.md) (the user's typography spec). Display is Bricolage Grotesque
+(static instance, opsz 96, wdth 82, wght 700) for the landing hero, landing section headings and the Discern wordmark only; text
+and UI are IBM Plex Sans (variable, 400 to 600); literal machine output is IBM Plex Mono 400. Fonts are self-hosted WOFF2 in
+`public/fonts` (see `public/fonts/LICENSES.md`). Tokens live in `src/index.css` under `@theme`: `--font-display`, `--font-sans`,
+`--font-mono`, and the scale `--text-display-xl`, `--text-display-l`, `--text-wordmark`, `--text-h1`, `--text-h2`, `--text-h3`,
+`--text-body-l`, `--text-body`, `--text-body-s`, `--text-label`, `--text-caption`, `--text-data-narrow`, `--text-code`, each with
+`--line-height`, `--letter-spacing` and `--font-weight` companions. Components use the matching `type-*` utilities
+(for example `type-h1`, `type-body-l`, `type-code`) and never raw font names or pixel sizes. Rules in force: sentence case
+everywhere, no all-caps labels, no eyebrow labels, one timestamp format (m:ss, h:mm:ss from an hour; milliseconds only in the trace),
+confidence as whole-number percentages outside the trace, counts written into sentences, right-aligned numeric columns,
+nothing under 12px or lighter than 400. Color stays the light Refero palette; every text pair is at least 4.5:1.
 
 Space: 4px base; scale 4, 7, 10, 12, 14, 17, 22, 28, 36, 43, 58, 65. Section gap 43, card padding 24,
 element gap 14. Page max-width 1440.
@@ -34,8 +38,8 @@ Shadow: only on cards, the directional ink shadow `rgba(29,29,27,.2) -4px 4px 6p
 
 ## Components
 
-- Header bar: parchment, 1px ink bottom border, brand centered in display serif, a small label at left (profile name), nav at right as text links with icon + text; the active item is underlined with 2px ember.
-- Display banner: full-width ink block, parchment display text clamp(64px, 14vw, 200px), line-height .8, one per tab as the section title (for example "CLEAN", "ASK", "TRACE"). The text is also a real heading for screen readers.
+- Header bar: parchment, 1px ink bottom border, Discern wordmark centered in the display face (links to `#/`), a small label at left (profile name), nav at right as text links with icon + text; the active item is underlined with 2px ember.
+- Page band: full-width ink block with a sentence-case Plex h1 (`type-h1`, for example "Clean", "Ask", "Trace") and a one-line lead. No display type and no all-caps inside the app.
 - Card: bone surface, 24px padding, radius 11.52px, directional shadow, no border. Images inside bleed to the card edge with 0 radius.
 - Button: primary = ink fill, parchment text, radius 2.88, min height 44px, 3px ember focus ring with 2px offset; secondary = text link with 1px underline, offset 3; disabled = opacity .45, not-allowed cursor, `aria-disabled`; loading = disabled + spinner icon + visible label change ("Working").
 - Badge (stamp): 2.88px radius, ember outline, ink text 12-14px (an ember fill with parchment text measures 3.96:1, too low), only for result states such as "ungrounded", "accepted" or "rejected".
@@ -44,7 +48,7 @@ Shadow: only on cards, the directional ink shadow `rgba(29,29,27,.2) -4px 4px 6p
 - Before/after: two images in a 2-column grid with captions; an optional "Compare" range slider must be keyboard accessible (arrow keys) and labelled.
 - Decision timeline: ordered list of SAIR decisions (perception, restorer, image selection, super-resolution), each with a one-line rationale.
 - Evidence track card: crop thumbnail (0 radius), label, time range `mm:ss.s to mm:ss.s` (tabular), mean score, status stamp, rationale, and a "Jump to time" text link that seeks the video player.
-- Chat: user turns flush-left in ink on parchment with a 2px ink left rule, assistant turns on bone cards; ungrounded answers carry an "ungrounded" stamp; an `aria-live="polite"` region announces new answers; Enter sends, Shift+Enter inserts a newline.
+- Chat: user turns flush-left in ink on parchment with a 2px ink left rule, assistant turns on bone cards; ungrounded answers carry the text label "Not grounded in detections" (`type-label`); an `aria-live="polite"` region announces new answers; Enter sends, Shift+Enter inserts a newline.
 - Trace table: sticky header, tabular numerals, columns node, decision, duration ms, GPU ms, fallback (icon + word), expandable rows.
 - Skeletons: bone blocks with `animate-pulse` for any wait over 300ms; ingest shows a progress bar and step text "Step n of N".
 - Toasts: ink on parchment, 4s auto-dismiss, `aria-live="polite"`, never steal focus.
@@ -71,6 +75,6 @@ never the only signal, touch targets at least 44x44 with 8px gaps, no hover-only
 
 ## Anti-patterns for this project
 
-Gradients, glass blur, shadows other than the card shadow, radius above 12px, sans-serif fonts, a second accent
+Gradients, glass blur (the one allowed exception is the landing hero headline resolving from soft focus once), shadows other than the card shadow, radius above 12px, sans-serif fonts outside the spec stacks, a second accent
 color, centered long body text, emoji icons, placeholder-only labels, invented numbers (the About tab shows only
 values returned by the API, or "not measured yet").

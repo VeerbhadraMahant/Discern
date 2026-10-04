@@ -8,8 +8,14 @@ describe("parseHash", () => {
     expect(parseHash("#feedback")).toBe("feedback");
     expect(parseHash("#/about")).toBe("about");
   });
-  it("falls back to clean for empty or unknown hashes", () => {
-    expect(parseHash("")).toBe("clean");
-    expect(parseHash("#/nope")).toBe("clean");
+  it("opens the landing page for an empty hash, the root hash or an in-page anchor", () => {
+    expect(parseHash("")).toBe("home");
+    expect(parseHash("#")).toBe("home");
+    expect(parseHash("#/")).toBe("home");
+    expect(parseHash("#s-features")).toBe("home");
+    expect(parseHash("#/nope")).toBe("home");
+  });
+  it("ignores a query string after the tab name", () => {
+    expect(parseHash("#/clean?mock=1")).toBe("clean");
   });
 });

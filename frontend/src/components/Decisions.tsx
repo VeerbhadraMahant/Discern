@@ -7,7 +7,7 @@ export function ProfileList({ profile }: { profile: SceneProfile }) {
     ["Visibility", profile.visibility],
     ["Object scale", profile.object_scale],
     ["Object density", profile.object_density],
-    ["Confidence", profile.confidence.toFixed(2)],
+    ["Confidence", `${Math.round(profile.confidence * 100)}%`],
   ];
   return (
     <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">

@@ -26,7 +26,7 @@ describe("AskView chat flow", () => {
     expect((await screen.findAllByText(/two tracked objects match/)).length).toBeGreaterThan(0);
     expect(screen.getByText("accepted")).toBeInTheDocument();
     expect(screen.getByText("rejected")).toBeInTheDocument();
-    expect(screen.queryByText("ungrounded")).not.toBeInTheDocument();
+    expect(screen.queryByText("Not grounded in detections")).not.toBeInTheDocument();
     // The live region carries the newest answer.
     const live = document.querySelector('[aria-live="polite"]');
     expect(live).toHaveTextContent(/two tracked objects match/);
@@ -43,17 +43,17 @@ describe("AskView chat flow", () => {
     await screen.findAllByText(/two tracked objects match/);
   });
 
-  it("stamps ungrounded answers", async () => {
+  it("labels ungrounded answers in text", async () => {
     renderApp(<AskView />);
     await ask("why is it dark");
-    expect(await screen.findByText("ungrounded")).toBeInTheDocument();
+    expect(await screen.findByText("Not grounded in detections")).toBeInTheDocument();
   });
 
   it("styles a clarification as a question to the user", async () => {
     renderApp(<AskView />);
     await ask("cars");
     expect(await screen.findByText("Discern needs one more detail")).toBeInTheDocument();
-    expect(screen.queryByText("ungrounded")).not.toBeInTheDocument();
+    expect(screen.queryByText("Not grounded in detections")).not.toBeInTheDocument();
   });
 
   it("uploads a video, then Jump to time on an evidence card seeks the player", async () => {

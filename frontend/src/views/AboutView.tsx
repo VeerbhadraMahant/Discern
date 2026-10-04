@@ -9,7 +9,7 @@ export function AboutView() {
   const { info, connection, retryConnect } = useDiscern();
   return (
     <>
-      <Banner title="ABOUT" kicker="What Discern stores, which models it uses, and what is measured." />
+      <Banner title="About" kicker="What Discern stores, which models it uses, and what is measured." />
       <div className="mx-auto grid max-w-[1440px] grid-cols-1 gap-10 px-4 py-10 md:px-8 lg:grid-cols-2">
         {connection.status === "unreachable" && (
           <div className="lg:col-span-2">
@@ -17,7 +17,7 @@ export function AboutView() {
           </div>
         )}
         <Card as="section" aria-labelledby="stored-h" className="flex flex-col gap-3">
-          <h2 id="stored-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+          <h2 id="stored-h" className="type-h2">
             What is stored
           </h2>
           {info ? (
@@ -40,17 +40,17 @@ export function AboutView() {
         </Card>
 
         <Card as="section" aria-labelledby="meas-h" className="flex flex-col gap-3">
-          <h2 id="meas-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+          <h2 id="meas-h" className="type-h2">
             Measured so far
           </h2>
           {info ? (
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-              <dt className="font-semibold">Profile</dt>
-              <dd className="font-normal">{info.profile}</dd>
-              <dt className="font-semibold">GPU seconds</dt>
+              <dt className="type-label">Profile</dt>
+              <dd className="type-code ident">{info.profile}</dd>
+              <dt className="type-label">GPU seconds</dt>
               <dd className="num font-normal">{info.measured_gpu_seconds === null ? "not measured yet" : info.measured_gpu_seconds}</dd>
-              <dt className="font-semibold">Memory version</dt>
-              <dd className="font-normal">{info.memory_version ?? "none"}</dd>
+              <dt className="type-label">Memory version</dt>
+              <dd className="type-code ident">{info.memory_version ?? "none"}</dd>
             </dl>
           ) : (
             <Skeleton className="h-24 w-full" />
@@ -58,7 +58,7 @@ export function AboutView() {
         </Card>
 
         <Card as="section" aria-labelledby="models-h" className="flex flex-col gap-3 lg:col-span-2">
-          <h2 id="models-h" className="font-display text-heading-sm leading-[0.95] tracking-[-0.04em]">
+          <h2 id="models-h" className="type-h2">
             Models
           </h2>
           {info ? (
@@ -78,7 +78,7 @@ export function AboutView() {
                     {info.models.map((m, i) => (
                       <tr key={i} className="border-b border-ink/40">
                         <td className="py-2 pr-4 font-normal">{m.role}</td>
-                        <td className="py-2 pr-4 font-normal">{m.name}</td>
+                        <td className="type-code ident py-2 pr-4">{m.name}</td>
                         <td className="py-2 font-normal">{m.license}</td>
                       </tr>
                     ))}

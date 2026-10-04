@@ -15,15 +15,15 @@ export function TrackCard({ track, onJump }: { track: Track; onJump: (seconds: n
             className="size-24 shrink-0 bg-ink object-cover"
           />
         ) : (
-          <div className="flex size-24 shrink-0 items-center justify-center bg-parchment text-center text-caption font-normal">No crop</div>
+          <div className="flex size-24 shrink-0 items-center justify-center bg-parchment text-center type-body-s">No crop</div>
         )}
         <div className="flex min-w-0 flex-col gap-1">
-          <p className="font-display text-subhead leading-none tracking-[-0.04em]">
-            {track.label} <span className="num font-body text-base">#{track.id}</span>
+          <p className="type-h3">
+            {track.label} <span className="num ident">#{track.id}</span>
           </p>
           <p className="num font-normal">{formatRange(track.t_start, track.t_end)}</p>
           <p className="num font-normal">
-            mean score {track.mean_score.toFixed(2)}, {track.n_frames} frames
+            mean confidence {Math.round(track.mean_score * 100)}%, {track.n_frames} frames
           </p>
           <div>
             <Stamp icon={accepted ? <CheckCircle size={16} aria-hidden="true" /> : <Prohibit size={16} aria-hidden="true" />}>

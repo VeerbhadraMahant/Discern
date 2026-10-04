@@ -1,8 +1,11 @@
+/** The one timestamp format: m:ss under an hour, h:mm:ss from an hour up. Milliseconds appear only in the trace. */
 export function formatTime(seconds: number): string {
-  const s = Math.max(0, seconds);
-  const m = Math.floor(s / 60);
-  const rest = s - m * 60;
-  return `${String(m).padStart(2, "0")}:${rest.toFixed(1).padStart(4, "0")}`;
+  const total = Math.floor(Math.max(0, seconds));
+  const h = Math.floor(total / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  const ss = String(s).padStart(2, "0");
+  return h > 0 ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
 }
 
 export function formatRange(start: number, end: number): string {

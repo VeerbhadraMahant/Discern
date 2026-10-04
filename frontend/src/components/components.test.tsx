@@ -55,15 +55,15 @@ const TRACK: Track = {
 };
 
 describe("TrackCard", () => {
-  it("shows label, range, score and status and jumps to the start time", async () => {
+  it("shows label, range, confidence and status and jumps to the start time", async () => {
     const onJump = vi.fn();
     render(
       <ul>
         <TrackCard track={TRACK} onJump={onJump} />
       </ul>,
     );
-    expect(screen.getByText(/00:02.5 to 00:04.0/)).toBeInTheDocument();
-    expect(screen.getByText(/mean score 0.80/)).toBeInTheDocument();
+    expect(screen.getByText(/0:02 to 0:04/)).toBeInTheDocument();
+    expect(screen.getByText(/mean confidence 80%/)).toBeInTheDocument();
     expect(screen.getByText("accepted")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /Jump to time/ }));
     expect(onJump).toHaveBeenCalledWith(2.5);

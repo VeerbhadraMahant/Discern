@@ -17,7 +17,7 @@ export function TraceView() {
 
   return (
     <>
-      <Banner title="TRACE" kicker="Every decision Discern made for this session, in order." />
+      <Banner title="Trace" kicker="Every decision Discern made for this session, in order." />
       <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 py-10 md:px-8">
         {error && <ErrorNotice error={error} onDismiss={clearError} />}
         {session && (
@@ -40,12 +40,12 @@ export function TraceView() {
           </EmptyState>
         ) : (
           <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Scrollable table">
-            <table className="w-full min-w-[640px] border-collapse text-left">
+            <table className="type-body-s w-full min-w-[640px] border-collapse text-left">
               <caption className="sr-only">Pipeline events in order</caption>
               <thead>
                 <tr className="border-b border-ink">
                   {["Node", "Decision", "Duration ms", "GPU ms", "Fallback"].map((h) => (
-                    <th key={h} scope="col" className="sticky top-0 bg-parchment px-3 py-2 font-semibold">
+                    <th key={h} scope="col" className={`sticky top-0 bg-parchment px-3 py-2 type-label ${h.endsWith("ms") ? "text-right" : ""}`}>
                       {h}
                     </th>
                   ))}
@@ -70,11 +70,11 @@ export function TraceView() {
                           </button>
                         </td>
                         <td className="px-3 py-2 font-normal">{e.decision}</td>
-                        <td className="num px-3 py-2 font-normal">{e.duration_ms}</td>
-                        <td className="num px-3 py-2 font-normal">{e.gpu_ms ?? "none"}</td>
+                        <td className="num px-3 py-2 text-right font-normal">{e.duration_ms}</td>
+                        <td className="num px-3 py-2 text-right font-normal">{e.gpu_ms ?? "none"}</td>
                         <td className="px-3 py-2 font-normal">
                           {e.fallback_used ? (
-                            <span className="inline-flex items-center gap-1 font-semibold">
+                            <span className="type-label inline-flex items-center gap-1">
                               <WarningCircle size={20} className="text-ember" aria-hidden="true" />
                               fallback
                             </span>
@@ -90,12 +90,12 @@ export function TraceView() {
                         <tr id={`ev-${i}`} className="border-b border-ink/40 bg-bone">
                           <td colSpan={5} className="px-3 py-3">
                             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-                              <dt className="font-semibold">Input</dt>
-                              <dd className="font-normal">{e.input_summary}</dd>
-                              <dt className="font-semibold">Rationale</dt>
+                              <dt className="type-label">Input</dt>
+                              <dd className="type-code break-words">{e.input_summary}</dd>
+                              <dt className="type-label">Rationale</dt>
                               <dd className="font-normal">{e.rationale}</dd>
-                              <dt className="font-semibold">Prompt version</dt>
-                              <dd className="font-normal">{e.prompt_version ?? "none"}</dd>
+                              <dt className="type-label">Prompt version</dt>
+                              <dd className="type-code ident">{e.prompt_version ?? "none"}</dd>
                             </dl>
                           </td>
                         </tr>

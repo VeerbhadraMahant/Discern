@@ -15,6 +15,11 @@ const TEXT_PAIRS: Array<[string, string, string]> = [
   ["ink", "parchment", "body text on the page"],
   ["ink", "bone", "text inside cards, inputs and expanded rows"],
   ["parchment", "ink", "banner and primary button"],
+  // Landing page pairs: stat band, announcement bar and run-it-locally band use parchment on ink;
+  // cards, code block, chart card and stack chips use ink on bone; body, tables, chart values and stamps use ink on parchment.
+  ["parchment", "ink", "landing stat band, announcement bar and run-it-locally band"],
+  ["ink", "bone", "landing feature cards, code block, chart card and stack chips"],
+  ["ink", "parchment", "landing body text, tables, chart values and stamps"],
 ];
 
 describe("palette contrast", () => {
@@ -32,6 +37,12 @@ describe("palette contrast", () => {
     expect(contrastRatio(token("charcoal"), token("bone"))).toBeLessThan(4.5);
     expect(contrastRatio(token("ember"), token("parchment"))).toBeLessThan(4.5);
     expect(contrastRatio(token("parchment"), token("ember"))).toBeLessThan(4.5);
+  });
+
+  it("keeps chart and illustration strokes at 3:1 on every landing surface", () => {
+    expect(contrastRatio(token("ink"), token("parchment"))).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(token("ink"), token("bone"))).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(token("parchment"), token("ink"))).toBeGreaterThanOrEqual(3);
   });
 
   it("keeps ember at 3:1 or better for borders, icons and focus rings", () => {

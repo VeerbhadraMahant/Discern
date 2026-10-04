@@ -19,21 +19,24 @@ describe("hash routing", () => {
   it("opens the tab named by the hash and updates on hashchange", async () => {
     location.hash = "#/trace";
     renderApp(<Shell />, { session: null });
-    expect(screen.getByRole("heading", { level: 1, name: "TRACE" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1, name: "Trace" })).toBeInTheDocument();
     go("#/about");
-    expect(await screen.findByRole("heading", { level: 1, name: "ABOUT" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "About" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /About/ })).toHaveAttribute("aria-current", "page");
   });
 
-  it("navigates with the tab links and defaults to Clean", async () => {
+  it("defaults to the landing page and navigates to a tab with the header links", async () => {
     renderApp(<Shell />, { session: null });
-    expect(screen.getByRole("heading", { level: 1, name: "CLEAN" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: /Ask a video a question/ })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("link", { name: /Clean/ }));
+    expect(await screen.findByRole("heading", { level: 1, name: "Clean" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("link", { name: /Ask/ }));
-    expect(await screen.findByRole("heading", { level: 1, name: "ASK" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { level: 1, name: "Ask" })).toBeInTheDocument();
     expect(location.hash).toBe("#/ask");
   });
 
   it("shows a skip link, the connection status and the demo stamp for the mock client", async () => {
+    location.hash = "#/clean";
     renderApp(<Shell />, { session: null });
     expect(screen.getByRole("link", { name: "Skip to main content" })).toBeInTheDocument();
     expect(await screen.findByText(/Connected to demo data/)).toBeInTheDocument();
@@ -41,6 +44,7 @@ describe("hash routing", () => {
   });
 
   it("offers Start over once a session exists", async () => {
+    location.hash = "#/clean";
     renderApp(<Shell />);
     await userEvent.click(screen.getByRole("button", { name: /Start over/ }));
     expect(await screen.findByText("Your session was deleted.")).toBeInTheDocument();
