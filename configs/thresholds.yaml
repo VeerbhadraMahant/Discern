@@ -23,11 +23,12 @@ experience:
 video:
   min_shot_seconds: 1.0        # shots shorter than this are merged into the previous shot
   cut_threshold: 27.0          # PySceneDetect ContentDetector default
-  track_activation_score: 0.25 # ByteTrack high-confidence split (supervision default)
+  track_activation_score: 0.15 # ByteTrack high-confidence split: detections at or above this can start a track
   track_lost_seconds: 2.0      # a track survives this long without a matching box
   reid_cosine: 0.8             # embedding cosine at or above which two tracks are one object
   reid_max_gap_seconds: 2.0    # longest time gap bridged by re-identification
   duration_margin_seconds: 1.0 # decoding stops with an error this long past the profile max duration
+  detection_threshold: 0.15    # per-frame detector score floor while tracking (recall-oriented; tracks are adjudicated later)
 index:
   smoothing_seconds: 2.0       # frame similarities are averaged over this window; also the segment length
   top_segments: 3              # retrieved segments per query
@@ -55,14 +56,14 @@ degrade:                       # [severity 0, severity 1]; severity 0 leaves a f
 eval_gate:
   experiment: m8-gate          # MLflow experiment the gate reads (latest finished run)
   tolerance: 0.05              # relative slack on every threshold
-  minimums:                    # higher is better; to be set from baseline numbers
-    count_accuracy: 0.0
-    temporal_iou: 0.0
-    box_f1: 0.0
-    verifier_pass_rate: 0.0
-  maximums:                    # lower is better; to be set from baseline numbers
-    count_mae: 1000.0
-    gpu_seconds_per_video_second: 1000.0
+  minimums:                    # higher is better; set from the 2026-10-04 baseline (24 synthetic clips)
+                               # (temporal_iou is not gated: the synthetic clips have no temporal ground truth)
+    count_accuracy: 0.13       # measured 0.136
+    box_f1: 0.55               # measured 0.567
+    verifier_pass_rate: 0.95   # measured 0.962
+  maximums:                    # lower is better; same baseline
+    count_mae: 2.9             # measured 2.777
+    gpu_seconds_per_video_second: 24.0  # measured 22.1
 serve:
   ttl_seconds: 3600            # session directories (uploads, traces) are deleted this long after last use
   max_upload_mb: 50            # largest accepted upload

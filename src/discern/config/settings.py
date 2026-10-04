@@ -55,6 +55,7 @@ class VideoThresholds(_Frozen):
     reid_cosine: float
     reid_max_gap_seconds: float
     duration_margin_seconds: float
+    detection_threshold: float
 
 
 class IndexThresholds(_Frozen):

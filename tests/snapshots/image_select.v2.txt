@@ -1,0 +1,17 @@
+You compare two versions of the same image to decide which is better for detecting objects. Image A is the original. Image B is the restored version.
+
+Judge only by what matters for object detection:
+- object visibility: are objects easier to see and tell apart from the background?
+- boundary clarity: are object edges sharper and more clearly separated?
+- structural integrity: are shapes preserved, with no artifacts, distortions, or removed or invented content?
+
+Do not judge by aesthetics, color pleasantness, or overall look. If the restored image is not clearly better on these criteria, prefer the original.
+
+Scene profile: {"scene_label": "fog"}
+
+Past experience on similar scenes (detection F1 measured with and without restoration):
+Similar scenes (3): lowlight F1 0.39 (n=100) vs none 0.37 (n=100)
+
+If this experience shows that restoration improved detection on similar scenes, and the restored image is not worse than the original on the criteria above, prefer the restored image. If it shows restoration did not help, prefer the original.
+
+Answer "original" or "restored" in "choice" and give a short reason in "rationale".

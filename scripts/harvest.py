@@ -1,14 +1,17 @@
-"""Offline SEEH harvest: build an experience memory from each dataset's harvest split.
+"""Offline SEEH harvest, step 2: build a versioned experience memory from cached detections.
 
-Usage:
-  uv run python scripts/harvest.py --version v1 --restorers dehaze=<registry entry> \
-      --sr <registry entry> --detectors yolo-world-v2 owlv2-base grounding-dino-base \
-      --no-confirm [--limit N] [dataset ...]
+Usage (after scripts/harvest_variants.py has filled data/_cache/seeh/):
+  uv run python scripts/harvest.py [--pin] [--limit N] [--adjudicate] [dataset ...]
+Default datasets: hazydet_real bdd100k_night bdd100k_rainy darkface.
 
-Inputs: data/<name> prepared datasets (harvest split, `discern.eval.datasets.load_dataset`).
-Detector outputs are cached under data/_cache/seeh/, one file per (variant, detector, dataset).
-Outputs: data/memory/records.jsonl (raw records, appended) and
-data/memory/memory-<version>.json (aggregated, versioned memory).
+Inputs: each dataset's harvest split (`discern.eval.datasets.load_dataset`), its cached detections
+(format in `discern.experience.harvest_cache`) and ground truth. The scene profile of an image is
+the dataset-implied scene label plus the statistics-based attributes of the original image
+(`discern.vision.stats.profile_from_stats`), so no VLM is needed; the mapped restorer comes from
+the same label.
+Outputs under data/memory/ (or --memory-dir): records-<version>.jsonl (raw records of this run)
+and memory-<version>.json (aggregated). The version id is <date>-<record count> unless --version
+is given. The pinned pointer file (what the app reads) is written only with --pin.
 
 Confirmation of the top configurations: with `--adjudicate` each is re-scored by running
 `detect_image` (VLM detector selection among the configuration's detectors, then crop-level
@@ -20,40 +23,37 @@ Publishing to Hugging Face is a separate step: `discern.experience.aggregate.pub
 """
 
 import argparse
-from collections.abc import Sequence
+from collections import defaultdict
+from collections.abc import Iterable, Sequence
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
+
+from discern.experience.aggregate import OptionStat
+
+DATASETS = ["hazydet_real", "bdd100k_night", "bdd100k_rainy", "darkface"]
+NODE_ORDER = {"restorer": 0, "sr": 1, "detector_set": 2}
 
 
 def _parse(argv: list[str] | None) -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    p.add_argument("datasets", nargs="*", help="dataset names (default: the six benchmark sets)")
-    p.add_argument("--version", required=True, help="memory version id, for example v1")
-    p.add_argument("--vlm", default="qwen3-vl-4b-4bit", help="registry entry used for perception")
-    p.add_argument("--detectors", nargs="+", required=True, help="registry entries (the pool)")
-    p.add_argument(
-        "--restorers",
-        nargs="*",
-        default=[],
-        metavar="NAME=ENTRY",
-        help="restorer role name -> registry entry, for example dehaze=ridcp",
-    )
-    p.add_argument("--sr", default=None, help="registry entry of the super-resolution model")
+    p.add_argument("datasets", nargs="*", default=DATASETS, help="dataset names")
+    p.add_argument("--version", default=None, help="memory version id (default: <date>-<records>)")
+    p.add_argument("--vlm", default="qwen3-vl-4b-4bit", help="registry entry for --adjudicate")
+    p.add_argument("--detectors", nargs="+", default=None, help="the pool (default: harvest pool)")
     p.add_argument("--limit", type=int, default=None, help="images per dataset (default: settings)")
-    p.add_argument("--min-score", type=float, default=0.0, help="detection score floor")
+    p.add_argument(
+        "--min-score",
+        type=float,
+        default=0.0,
+        help="one floor for all detectors (default: tune one per detector)",
+    )
     p.add_argument("--adjudicate", action="store_true", help="confirm top configs (see above)")
     p.add_argument("--no-confirm", action="store_true", help="skip adjudication (the default)")
+    p.add_argument("--pin", action="store_true", help="write the pinned pointer to this version")
     p.add_argument("--memory-dir", type=Path, default=None, help="default: data/memory")
+    p.add_argument("--cache-dir", type=Path, default=None, help="default: data/_cache/seeh")
     return p.parse_args(argv)
-
-
-DATASETS = [
-    "coco_val_clean",
-    "bdd100k_clear",
-    "bdd100k_rainy",
-    "bdd100k_night",
-    "hazydet_real",
-    "darkface",
-]
 
 
 class _Cached:
@@ -66,152 +66,164 @@ class _Cached:
         return list(self._detections)
 
 
+def summary_rows(stats: Iterable[OptionStat]) -> list[tuple[str, str, str, float, int]]:
+    """(scene label, node, option, mean node value, image count): profile keys of the same scene
+    label pooled, weighted by their image counts."""
+    total: dict[tuple[str, str, str], list[float]] = defaultdict(lambda: [0.0, 0.0])
+    for s in stats:
+        acc = total[(s.profile_key.split("|")[0], s.node, s.option)]
+        acc[0] += s.mean * s.count
+        acc[1] += s.count
+    rows = [(*k, v[0] / v[1], int(v[1])) for k, v in total.items()]
+    return sorted(rows, key=lambda r: (r[0], NODE_ORDER[r[1]], -r[3]))
+
+
+def print_summary(stats: Iterable[OptionStat]) -> None:
+    print(f"{'scene':10s} {'node':13s} {'option':44s} {'mean F1':>8s} {'n':>5s}")
+    previous = ""
+    for scene, node, option, mean, n in summary_rows(stats):
+        if previous and scene != previous:
+            print()
+        previous = scene
+        print(f"{scene:10s} {node:13s} {option:44s} {mean:8.3f} {n:5d}")
+
+
 def main(argv: list[str] | None = None) -> None:
     args = _parse(argv)
     # Heavy imports live here so `--help` and linting never load model stacks.
-    import numpy as np
-
-    from discern.agent.med import detect_image
-    from discern.agent.nodes.perception import perception
-    from discern.agent.nodes.restorer_select import RESTORER_FOR_SCENE
-    from discern.agent.nodes.sr_select import required_factor
-    from discern.agent.schemas import DetectorInfo, SceneProfile
     from discern.config import load_settings
     from discern.eval.datasets import DATA_DIR, load_dataset
     from discern.eval.metrics import match_image
-    from discern.eval.runner import cache_path, dataset_targets, detect_all, load_rgb
-    from discern.eval.types import GroundTruthBox
+    from discern.eval.runner import dataset_targets, load_rgb, tune_threshold
     from discern.experience.aggregate import build_memory, write_memory
-    from discern.experience.harvest import (
-        NONE,
-        SR_AUTO,
-        SR_OFF,
-        CachedOutputs,
-        Configuration,
-        fused_f1,
-        harvest_image,
+    from discern.experience.harvest import Configuration, fused_f1, harvest_image
+    from discern.experience.harvest_cache import (
+        CACHE_ROOT,
+        HARVEST_POOL,
+        load_cached_outputs,
+        mapped_restorer,
     )
-    from discern.experience.schema import ExperienceStore
-    from discern.models.loading import load_adapter
+    from discern.experience.promotion import write_pointer
+    from discern.experience.schema import ExperienceRecord, ExperienceStore
     from discern.models.registry import load_registry
-    from discern.models.roles import Image
-    from discern.trace import TraceCollector
-    from discern.vision.boxes import Box
+    from discern.vision.stats import profile_from_stats
 
     settings = load_settings()
     exp = settings.thresholds.experience
     registry = load_registry()
     memory_dir = args.memory_dir or DATA_DIR / "memory"
-    store = ExperienceStore(memory_dir / "records.jsonl")
-
-    vlm = load_adapter(registry[args.vlm])
-    detectors = {name: load_adapter(registry[name]) for name in args.detectors}
-    restorers = {
-        name: load_adapter(registry[entry])
-        for name, entry in (r.split("=", 1) for r in args.restorers)
-    }
-    sr_model = load_adapter(registry[args.sr]) if args.sr else None
+    cache_root = args.cache_dir or CACHE_ROOT
+    pool = args.detectors or list(HARVEST_POOL)
+    revisions = {name: registry[name].revision for name in pool}
+    grouping = settings.thresholds.grouping
+    limit = args.limit or exp.harvest_samples_per_dataset
     adjudicate = args.adjudicate and not args.no_confirm
     if not adjudicate:
         print("WARNING: confirmation skipped, cheap fused scores stand in for adjudication")
 
-    grouping = settings.thresholds.grouping
-    target = settings.thresholds.agent.sr_target_long_side
-    limit = args.limit or exp.harvest_samples_per_dataset
-    records = []
-    for dataset in args.datasets or DATASETS:
+    vlm: Any = None
+    if adjudicate:
+        from discern.models.loading import load_adapter
+
+        vlm = load_adapter(registry[args.vlm])
+
+    def adjudicated_f1(
+        c: Configuration, image: Any, gt: Any, outs: Any, profile: Any, targets: list[str]
+    ) -> float:
+        from discern.agent.med import detect_image
+        from discern.agent.schemas import DetectorInfo
+        from discern.trace import TraceCollector
+
+        cached = {n: _Cached(outs[c.variant][n]) for n in c.detectors}
+        catalog = [
+            DetectorInfo(
+                name=n,
+                capabilities=registry[n].role.replace("_", " "),
+                speed_class=registry[n].speed_class,
+            )
+            for n in c.detectors
+        ]
+        final = detect_image(
+            vlm,
+            TraceCollector(),
+            image,
+            targets,
+            profile,
+            cached,  # type: ignore[arg-type]
+            catalog,
+            adjudicate_all=False,
+            settings=settings,
+            operating_thresholds=dict.fromkeys(c.detectors, args.min_score),  # adjudication path
+            priority=c.detectors,
+        )
+        return match_image(final, gt).f1
+
+    records: list[ExperienceRecord] = []
+    for dataset in args.datasets:
         images = load_dataset(dataset, "harvest")[:limit]
         targets = dataset_targets(images)
-        rgb = {a.image_id: load_rgb(a.path) for a in images}
-        profiles = {a.image_id: perception(vlm, TraceCollector(), rgb[a.image_id]) for a in images}
-        outputs: dict[str, CachedOutputs] = {a.image_id: {} for a in images}  # type: ignore[assignment]
-        for restorer in [NONE, *restorers]:
-            for sr in (SR_OFF, SR_AUTO):
-                if sr == SR_AUTO and sr_model is None:
-                    continue
-
-                def variant(
-                    a: object, img: np.ndarray, r: str = restorer, s: str = sr
-                ) -> np.ndarray:
-                    out = img if r == NONE else restorers[r].restore(img)
-                    factor = required_factor(max(out.shape[:2]), target)
-                    if s == SR_AUTO and factor and sr_model is not None:
-                        out = sr_model.upscale(out, factor)
-                    return out
-
-                for name, detector in detectors.items():
-                    cache = cache_path(f"seeh-{restorer}-{sr}-{name}", f"{dataset}-harvest", "v1")
-                    found = detect_all(detector, images, targets, cache, preprocess=variant)
-                    for a in images:
-                        factor = 1
-                        if sr == SR_AUTO:  # boxes come back in upscaled pixels: map to original
-                            long_side = max(rgb[a.image_id].shape[:2])
-                            factor = required_factor(long_side, target) or 1
-                        scaled = [
-                            d.model_copy(update={"box": Box(*(c / factor for c in d.box))})
-                            for d in found[a.image_id]
-                        ]
-                        outputs[a.image_id].setdefault((restorer, sr), {})[name] = scaled
+        mapped = {a.image_id: mapped_restorer(a.scene_label) for a in images}
+        outputs = load_cached_outputs(cache_root, dataset, mapped, revisions)
+        if args.min_score > 0:
+            floors: float | dict[str, float] = args.min_score
+        else:  # per-detector thresholds tuned on the harvest images (no restoration, no SR)
+            floors = {
+                name: tune_threshold(
+                    {a.image_id: outputs[a.image_id][("none", "off")][name] for a in images}, images
+                )
+                for name in pool
+            }
+            print(f"[{dataset}] tuned detector thresholds: {floors}", flush=True)
+        before = len(records)
         for a in images:
-            mapped = RESTORER_FOR_SCENE.get(profiles[a.image_id].scene_label, NONE)
-            if mapped not in restorers:
-                mapped = NONE
-            image, gt, outs = rgb[a.image_id], a.objects, outputs[a.image_id]
+            image = load_rgb(a.path)
+            profile = profile_from_stats(image)
+            if a.scene_label is not None:  # harvest uses labelled data: the label is the truth
+                profile = profile.model_copy(update={"scene_label": a.scene_label})
+            outs = outputs[a.image_id]
 
             def confirm(
                 c: Configuration,
-                image: Image = image,
-                gt: Sequence[GroundTruthBox] = gt,
-                outs: CachedOutputs = outs,
-                profile: SceneProfile = profiles[a.image_id],
+                image: Any = image,
+                gt: Any = a.objects,
+                outs: Any = outs,
+                profile: Any = profile,
                 targets: list[str] = targets,
+                floors: float | dict[str, float] = floors,
             ) -> float:
                 if not adjudicate:
-                    return fused_f1(c, image, gt, outs, grouping, args.min_score)
-                cached = {n: _Cached(outs[c.variant][n]) for n in c.detectors}
-                catalog = [
-                    DetectorInfo(
-                        name=n,
-                        capabilities=registry[n].role.replace("_", " "),
-                        speed_class=registry[n].speed_class,
-                    )
-                    for n in c.detectors
-                ]
-                final = detect_image(
-                    vlm,
-                    TraceCollector(),
-                    image,
-                    targets,
-                    profile,
-                    cached,  # type: ignore[arg-type]
-                    catalog,
-                    adjudicate_all=False,
-                    settings=settings,
-                    operating_thresholds=dict.fromkeys(c.detectors, args.min_score),
-                    priority=c.detectors,
-                )
-                return match_image(final, gt).f1
+                    return fused_f1(c, image, gt, outs, grouping, floors)
+                return adjudicated_f1(c, image, gt, outs, profile, targets)
 
             records += harvest_image(
                 a.image_id,
-                profiles[a.image_id],
+                profile,
                 "detect",
                 image,
-                gt,
+                a.objects,
                 outs,
-                mapped,
-                list(detectors),
+                mapped[a.image_id],
+                pool,
                 grouping,
                 confirm,
                 exp.confirm_top_configs if adjudicate else 0,  # 0: no "adjudicated" rows
-                args.version,
-                args.min_score,
+                args.version or "pending",
+                floors,
             )
-            print(f"{dataset} {a.image_id}: {len(records)} records", flush=True)
+        print(f"[{dataset}] {len(images)} images, {len(records) - before} records", flush=True)
 
-    store.append(records)
-    memory = build_memory(store.load(), args.version)
+    version = args.version or f"{datetime.now(UTC):%Y%m%d}-{len(records)}"
+    records = [r.model_copy(update={"memory_version": version}) for r in records]
+    ExperienceStore(memory_dir / f"records-{version}.jsonl").append(records)
+    memory = build_memory(records, version)
     print("wrote", write_memory(memory, memory_dir), f"({memory.version.record_count} records)")
+    print_summary(memory.stats)
+    if args.pin:
+        pointer = memory_dir / settings.thresholds.serve.memory_pointer
+        write_pointer(pointer, version)
+        print("pinned", version, "in", pointer)
+    else:
+        print("not pinned (pass --pin to write the pointer)")
 
 
 if __name__ == "__main__":

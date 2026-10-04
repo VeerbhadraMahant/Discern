@@ -46,9 +46,10 @@ def test_extra_metrics_are_ignored() -> None:
     assert evaluate_gate({**GOOD, "unrelated": -5.0}, GATE).passed
 
 
-def test_configured_placeholders_pass_any_sane_result() -> None:
+def test_configured_thresholds_are_set_and_a_sane_result_passes() -> None:
     gate = load_settings("local_lite").thresholds.eval_gate
     assert gate.minimums and gate.maximums and gate.tolerance >= 0
-    sane = {n: 0.5 for n in gate.minimums} | {n: 1.0 for n in gate.maximums}
+    # Thresholds come from measured baselines: a result at the thresholds themselves passes.
+    sane = dict(gate.minimums) | dict(gate.maximums)
     assert evaluate_gate(sane, gate).passed
     assert not evaluate_gate({}, gate).passed

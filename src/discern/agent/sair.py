@@ -55,7 +55,8 @@ def plan_image(
             decisions.append(f"restore: {restorer_name} failed, using none")
             restorer_name = NONE
         else:
-            if image_select(vlm, trace, profile, image, restored).choice == "restored":
+            choice = image_select(vlm, trace, profile, image, restored, experience_text).choice
+            if choice == "restored":
                 chosen, use_restored = restored, True
             decisions.append(f"image_select: {'restored' if use_restored else 'original'}")
 

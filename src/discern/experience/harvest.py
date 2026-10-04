@@ -77,19 +77,27 @@ def enumerate_configurations(
     ]
 
 
+def _floor(min_score: float | Mapping[str, float], detector: str) -> float:
+    """Score floor for one detector: a single value for all, or a per-detector mapping."""
+    return min_score if isinstance(min_score, float | int) else min_score.get(detector, 0.0)
+
+
 def fused_f1(
     config: Configuration,
     image: Image,
     ground_truth: Sequence[GroundTruthBox],
     outputs: CachedOutputs,
     grouping: GroupingThresholds,
-    min_score: float = 0.0,
+    min_score: float | Mapping[str, float] = 0.0,
 ) -> float:
     """Cheap fusion: pool the set's detections, group, keep each group's anchor, F1@0.5."""
     try:
         per_detector = outputs[config.variant]
         pooled = [
-            d for name in config.detectors for d in per_detector[name] if d.score >= min_score
+            d
+            for name in config.detectors
+            for d in per_detector[name]
+            if d.score >= _floor(min_score, name)
         ]
     except KeyError as e:
         raise ValueError(f"no cached detector output for {config.label}: {e}") from e
@@ -105,7 +113,7 @@ def score_image(
     grouping: GroupingThresholds,
     confirm: Callable[[Configuration], float],
     confirm_top: int,
-    min_score: float = 0.0,
+    min_score: float | Mapping[str, float] = 0.0,
 ) -> list[ConfigScore]:
     """Score all configurations cheaply, then confirm the best `confirm_top` (ties: input order)."""
     scores = [
@@ -145,7 +153,7 @@ def harvest_image(
     confirm: Callable[[Configuration], float],
     confirm_top: int,
     memory_version: str,
-    min_score: float = 0.0,
+    min_score: float | Mapping[str, float] = 0.0,
 ) -> list[ExperienceRecord]:
     """Node-level records plus one raw record per configuration, for one labelled image."""
     configs = enumerate_configurations(mapped_restorer, detector_pool)

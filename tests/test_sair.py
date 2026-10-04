@@ -143,6 +143,25 @@ def test_restorer_select_unmapped_scenes_skip_the_vlm(label: str) -> None:
     assert vlm.prompts == [] and len(trace.events) == 1
 
 
+EVIDENCE = "Similar scenes (3): lowlight F1 0.39 (n=100) vs none 0.37 (n=100)"
+
+
+def test_image_select_v2_prompt_matches_golden_snapshot() -> None:
+    rendered = load_prompt("image_select", 2).render(
+        profile='{"scene_label": "fog"}', experience=EVIDENCE
+    )
+    assert rendered == (SNAPSHOTS / "image_select.v2.txt").read_text(encoding="utf-8")
+
+
+def test_image_select_uses_v2_prompt_only_when_experience_is_given() -> None:
+    img = small_image()
+    plain, informed = FakeVLM([RESTORED]), FakeVLM([RESTORED])
+    image_select(plain, TraceCollector(), make_profile(), img, img)
+    image_select(informed, TraceCollector(), make_profile(), img, img, EVIDENCE)
+    assert "Past experience" not in plain.prompts[0] and EVIDENCE not in plain.prompts[0]
+    assert EVIDENCE in informed.prompts[0]
+
+
 # ---- image_select -----------------------------------------------------------------------------
 
 

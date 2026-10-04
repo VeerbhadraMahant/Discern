@@ -606,7 +606,7 @@ class Engine:
     def _frame_detector(self, targets: Sequence[str]) -> Callable[[Shot, Image], list[Detection]]:
         """Fused proposals from the fast-class detectors of the profile (no VLM per frame)."""
         fast = [n for n in self.detectors if self.registry[n].speed_class == "fast"]
-        floor = max(self.settings.thresholds.agent.default_operating_threshold, SCORE_FLOOR)
+        floor = max(self.settings.thresholds.video.detection_threshold, SCORE_FLOOR)
 
         def detect(shot: Shot, image: Image) -> list[Detection]:
             pooled: list[Detection] = []

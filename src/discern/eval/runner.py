@@ -18,6 +18,7 @@ from discern.models.roles import SCORE_FLOOR, Detection, Detector
 THRESHOLD_GRID = [round(t, 2) for t in np.arange(SCORE_FLOOR, 0.951, 0.05)]
 _DETECTIONS = TypeAdapter(list[Detection])
 
+PostProcess = Callable[[AnnotatedImage, np.ndarray, list[Detection]], list[Detection]]
 DetectionMap = Mapping[str, Sequence[Detection]]  # image_id -> raw detections
 
 
@@ -37,8 +38,12 @@ def detect_all(
     targets: Sequence[str],
     cache_file: Path | None = None,
     preprocess: Callable[[AnnotatedImage, np.ndarray], np.ndarray] | None = None,
+    postprocess: PostProcess | None = None,
 ) -> dict[str, list[Detection]]:
-    """Run `detector` on every image, reusing results cached in `cache_file`."""
+    """Run `detector` on every image, reusing results cached in `cache_file`.
+
+    `postprocess(image, original_rgb, detections)` maps the detections of a preprocessed image
+    back to the original frame (e.g. after super-resolution); the cache stores its result."""
     cached: dict[str, list[Detection]] = {}
     if cache_file is not None and cache_file.exists():
         raw = json.loads(cache_file.read_text())
@@ -46,10 +51,10 @@ def detect_all(
     for a in images:
         if a.image_id in cached:
             continue
-        img = load_rgb(a.path)
-        if preprocess is not None:
-            img = preprocess(a, img)
-        cached[a.image_id] = detector.detect(img, targets)
+        original = load_rgb(a.path)
+        img = original if preprocess is None else preprocess(a, original)
+        found = detector.detect(img, targets)
+        cached[a.image_id] = found if postprocess is None else postprocess(a, original, found)
     if cache_file is not None:
         cache_file.parent.mkdir(parents=True, exist_ok=True)
         cache_file.write_bytes(

@@ -23,7 +23,9 @@ class Siglip2Adapter:
         )
 
     @staticmethod
-    def _normalise(features: torch.Tensor) -> Embeddings:
+    def _normalise(output: object) -> Embeddings:
+        # transformers 5 returns a model-output object whose pooler_output is the embedding.
+        features: torch.Tensor = getattr(output, "pooler_output", output)
         features = features / features.norm(dim=-1, keepdim=True)
         return features.float().cpu().numpy().astype(np.float32)
 
