@@ -16,7 +16,7 @@ and is packaged for a Hugging Face ZeroGPU Space.
 
 > **Status: working research prototype.** Everything quantitative in this document was measured by
 > runs in this repository. Nothing here is a claim about a hosted deployment: the Hugging Face Space
-> has not been published. Section 12 lists what did not work, and section 13 what is not done.
+> has not been published. Section 12 lists what did not work, and section 13 what is not done. Sources for every method, model and dataset are in [RESEARCH_AND_REFERENCES.md](RESEARCH_AND_REFERENCES.md).
 
 **Contents**
 
