@@ -35,20 +35,39 @@ export function unwrap<T>(data: unknown, endpoint: string): T {
   return first as T;
 }
 
+/**
+ * The backend returns media as root-relative Gradio file URLs ("/gradio_api/file=..."). Resolve every
+ * `*_url` string against the Gradio server so the browser fetches them from there, not from this app's origin.
+ */
+export function absolutizeMedia<T>(value: T, root: string): T {
+  if (Array.isArray(value)) return value.map((v) => absolutizeMedia(v, root)) as unknown as T;
+  if (!isRecord(value)) return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, v] of Object.entries(value)) {
+    out[key] =
+      key.endsWith("_url") && typeof v === "string" && v.startsWith("/")
+        ? new URL(v, root).toString()
+        : absolutizeMedia(v, root);
+  }
+  return out as T;
+}
+
 export class GradioDiscernClient implements DiscernClient {
   readonly isMock = false;
   readonly host: string;
   private readonly app: GradioLike;
+  private readonly root: string;
 
-  constructor(app: GradioLike, host: string) {
+  constructor(app: GradioLike, host: string, root = "http://localhost/") {
     this.app = app;
     this.host = host;
+    this.root = root;
   }
 
   static async connect(url: string): Promise<GradioDiscernClient> {
     try {
       const app = await Client.connect(url);
-      return new GradioDiscernClient(app as unknown as GradioLike, new URL(url).host);
+      return new GradioDiscernClient(app as unknown as GradioLike, new URL(url).host, new URL(url).origin);
     } catch (e) {
       throw networkError(e);
     }
@@ -61,7 +80,7 @@ export class GradioDiscernClient implements DiscernClient {
     } catch (e) {
       throw toDiscernError(e);
     }
-    return unwrap<T>(res.data, endpoint);
+    return absolutizeMedia(unwrap<T>(res.data, endpoint), this.root);
   }
 
   info() {
@@ -80,7 +99,7 @@ export class GradioDiscernClient implements DiscernClient {
     try {
       for await (const msg of this.app.submit("/discern_ingest", { session_id: sid })) {
         if (msg.type !== undefined && msg.type !== "data") continue;
-        yield unwrap<IngestEvent>(msg.data, "/discern_ingest");
+        yield absolutizeMedia(unwrap<IngestEvent>(msg.data, "/discern_ingest"), this.root);
       }
     } catch (e) {
       throw toDiscernError(e);

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { GradioDiscernClient } from "./client";
+import { GradioDiscernClient, absolutizeMedia } from "./client";
 import type { GradioLike } from "./client";
 import { DiscernError } from "./errors";
 import type { IngestEvent } from "./types";
@@ -95,5 +95,29 @@ describe("GradioDiscernClient", () => {
       for await (const ev of client.ingest("s")) void ev;
     };
     await expect(run()).rejects.toMatchObject({ kind: "backend", message: "bad video" });
+  });
+});
+
+describe("media URLs", () => {
+  it("resolves root-relative file URLs against the Gradio server, at any depth", () => {
+    const out = absolutizeMedia(
+      { ok: true, original_url: "/gradio_api/file=D:/x/a.png", shots: [{ before_url: "/gradio_api/file=D:/x/b.png", id: 1 }], note: "/keep" },
+      "http://127.0.0.1:7860",
+    );
+    expect(out.original_url).toBe("http://127.0.0.1:7860/gradio_api/file=D:/x/a.png");
+    expect(out.shots[0]?.before_url).toBe("http://127.0.0.1:7860/gradio_api/file=D:/x/b.png");
+    expect(out.note).toBe("/keep");
+  });
+
+  it("leaves absolute and null URLs alone", () => {
+    const out = absolutizeMedia({ crop_url: null, video_url: "https://cdn.example/v.mp4" }, "http://127.0.0.1:7860");
+    expect(out).toEqual({ crop_url: null, video_url: "https://cdn.example/v.mp4" });
+  });
+
+  it("applies to client calls", async () => {
+    const predict = vi.fn(async () => ({ data: [{ ok: true, session_id: "s", original_url: "/gradio_api/file=a.png" }] }));
+    const client = new GradioDiscernClient(fake({ predict }), "host", "http://127.0.0.1:7860");
+    const res = (await client.clean("s")) as unknown as { original_url: string };
+    expect(res.original_url).toBe("http://127.0.0.1:7860/gradio_api/file=a.png");
   });
 });
