@@ -5,24 +5,22 @@ nothing is requested from Google Fonts.
 
 | File | Family | Source | Version |
 |-|-|-|-|
-| `bricolage-grotesque-82-700-latin.woff2` | Bricolage Grotesque | Variable TTF `BricolageGrotesque[opsz,wdth,wght].ttf` from github.com/google/fonts (`ofl/bricolagegrotesque`, branch main, fetched 2026-10-04). Instanced with fontTools (opsz 96, wdth 82, wght 700), subset to Latin (U+0020-007E, U+00A0-00FF, a few punctuation marks), saved as WOFF2. Bricolage has no reserved font name, so a modified instance is permitted. | npm `@fontsource-variable/bricolage-grotesque` 5.3.0 was checked but splits the axes across files, so the Google Fonts source was used |
+| `montserrat-latin-700-normal.woff2` | Montserrat Bold (700), Latin | npm `@fontsource/montserrat` (static 700 was 18.8 KB against 38 KB for the variable file `@fontsource-variable/montserrat`, so the static file was chosen) | 5.3.0 (unmodified Fontsource Latin subset) |
 | `ibm-plex-sans-latin-wdth-normal.woff2` | IBM Plex Sans (variable, wght 100-700, wdth 75-100) | npm `@fontsource-variable/ibm-plex-sans` | 5.3.0 (unmodified Fontsource Latin subset) |
 | `ibm-plex-mono-latin-400-normal.woff2` | IBM Plex Mono Regular | npm `@fontsource/ibm-plex-mono` | 5.3.0 (unmodified Fontsource Latin subset) |
 
-Tools used to build the Bricolage instance: fontTools and brotli, run with
-`uv run --isolated --no-project --with fonttools --with brotli ...`.
-
-Fallback metric overrides for Bricolage (against Arial Narrow Bold, measured from the font files on Windows):
-size-adjust 88.77%, ascent-override 104.77%, descent-override 30.42%.
+Fallback metric overrides for Montserrat (against Arial Bold, measured from the font files on Windows over the page's headline text):
+size-adjust 109.7%, ascent-override 88.2% (968 / 1000 / 1.097), descent-override 22.9% (251 / 1000 / 1.097), line-gap-override 0%.
+The fallback face is declared in `src/index.css` as "Montserrat Fallback".
 
 Known limit: the Fontsource Latin subsets of Plex do not contain the `zero` (slashed zero) feature, so identifiers
 use the font's default zero.
 
 ---
 
-## Bricolage Grotesque license
+## Montserrat license
 
-Copyright 2022 The Bricolage Grotesque Project Authors (https://github.com/ateliertriay/bricolage)
+Copyright 2011 The Montserrat Project Authors (https://github.com/JulietaUla/Montserrat)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 This license is copied below, and is also available with a FAQ at:

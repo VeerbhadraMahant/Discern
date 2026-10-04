@@ -99,7 +99,7 @@ export function AskView() {
   return (
     <>
       <Banner title="Ask" kicker="Ask a question about the video. Every answer shows the evidence it rests on." />
-      <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-8">
+      <div className="page py-10">
         {!session ? (
           <EmptyState title="Nothing to ask about yet">
             <p>Upload a video on the Clean tab first.</p>

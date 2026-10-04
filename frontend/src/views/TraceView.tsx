@@ -18,7 +18,7 @@ export function TraceView() {
   return (
     <>
       <Banner title="Trace" kicker="Every decision Discern made for this session, in order." />
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-6 px-4 py-10 md:px-8">
+      <div className="page flex flex-col gap-6 py-10">
         {error && <ErrorNotice error={error} onDismiss={clearError} />}
         {session && (
           <div>

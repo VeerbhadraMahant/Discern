@@ -45,7 +45,7 @@ export function FeedbackView() {
     return (
       <>
         <Banner title="Feedback" kicker="Tell us when an answer was right, wrong or missing something." />
-        <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-8">
+        <div className="page py-10">
           <EmptyState title="No results to rate yet">
             <p>Ask a question on the Ask tab. A grounded answer gives you a result set to give feedback on.</p>
             <p>
@@ -92,7 +92,7 @@ export function FeedbackView() {
   return (
     <>
       <Banner title="Feedback" kicker="Tell us when an answer was right, wrong or missing something." />
-      <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-8">
+      <div className="page py-10">
         <Card as="section" aria-labelledby="fb-h" className="max-w-2xl">
           <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-6" noValidate>
             <h2 id="fb-h" className="type-h2">

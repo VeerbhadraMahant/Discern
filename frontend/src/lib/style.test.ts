@@ -39,14 +39,19 @@ describe("design guardrails (MASTER.md)", () => {
   });
   it("includes the landing sources in the scan", () => {
     expect(files.some((f) => /landing[\\/]facts\.ts$/.test(f))).toBe(true);
-    expect(files.some((f) => /landing[\\/]sections3\.tsx$/.test(f))).toBe(true);
+    expect(files.some((f) => /landing[\\/]bands4.tsx$/.test(f))).toBe(true);
   });
   it("does not use the retired typefaces", () => {
-    expect(scan(/Bodoni|Source Serif|["']Inter["']|font-body/)).toEqual([]);
+    expect(scan(/Bodoni|Source Serif|Bricolage|["']Inter["']|font-body/)).toEqual([]);
+  });
+  it("loads exactly the three families Montserrat, IBM Plex Sans and IBM Plex Mono", () => {
+    const css = readFileSync(resolve(SRC, "index.css"), "utf8");
+    const families = [...css.matchAll(/@font-face \{[^}]*?font-family:\s*"([^"]+)"[^}]*?src:\s*url/g)].map((m) => m[1]).sort();
+    expect(families).toEqual(["IBM Plex Mono", "IBM Plex Sans", "Montserrat"]);
   });
   it("names font families only in the index.css tokens, never in components", () => {
     const tsx = files.filter((f) => /\.tsx?$/.test(f));
-    const bad = tsx.filter((f) => /IBM Plex|Bricolage|font-sans|sans-serif|font-\[/.test(readFileSync(f, "utf8")));
+    const bad = tsx.filter((f) => /IBM Plex|Montserrat|font-sans|sans-serif|font-\[/.test(readFileSync(f, "utf8")));
     expect(bad.map((f) => f.replace(SRC, "src"))).toEqual([]);
   });
   it("has no all-caps text transforms or all-caps headings", () => {
@@ -71,7 +76,7 @@ describe("design guardrails (MASTER.md)", () => {
   it("keeps the display face for the landing page and the wordmark only", () => {
     const users = files.filter((f) => /type-display-|type-wordmark|font-display/.test(readFileSync(f, "utf8")) && !/index\.css$/.test(f));
     expect(users.map((f) => f.replace(SRC, "src").split(sep).join("/")).sort()).toEqual(
-      ["src/components/Layout.tsx", "src/landing/art.tsx", "src/landing/kit.tsx", "src/landing/sections1.tsx", "src/landing/sections3.tsx"].sort(),
+      ["src/components/Wordmark.tsx", "src/landing/bands1.tsx", "src/landing/bands4.tsx", "src/landing/hero.tsx", "src/landing/kit.tsx"].sort(),
     );
   });
   it("has no radius above 12px", () => {

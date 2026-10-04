@@ -19,8 +19,8 @@ Colors (never use raw hex in components, only these tokens):
   contrast against parchment is 3.96:1 (fine for large UI marks and borders, not for text), so text on or in ember is ink.
 - State is never color alone: success = ink check icon + word, error = ember border + warning icon + message.
 
-Type: superseded by [docs/typography.md](../../docs/typography.md) (the user's typography spec). Display is Bricolage Grotesque
-(static instance, opsz 96, wdth 82, wght 700) for the landing hero, landing section headings and the Discern wordmark only; text
+Type: superseded by [docs/typography.md](../../docs/typography.md) (the user's typography spec). Display is Montserrat
+(static 700, Latin, from Fontsource) for the landing hero, landing section headings and the Discern wordmark only; text
 and UI are IBM Plex Sans (variable, 400 to 600); literal machine output is IBM Plex Mono 400. Fonts are self-hosted WOFF2 in
 `public/fonts` (see `public/fonts/LICENSES.md`). Tokens live in `src/index.css` under `@theme`: `--font-display`, `--font-sans`,
 `--font-mono`, and the scale `--text-display-xl`, `--text-display-l`, `--text-wordmark`, `--text-h1`, `--text-h2`, `--text-h3`,
@@ -38,7 +38,7 @@ Shadow: only on cards, the directional ink shadow `rgba(29,29,27,.2) -4px 4px 6p
 
 ## Components
 
-- Header bar: parchment, 1px ink bottom border, Discern wordmark centered in the display face (links to `#/`), a small label at left (profile name), nav at right as text links with icon + text; the active item is underlined with 2px ember.
+- Header bar: parchment, 1px ink bottom border, Discern wordmark (mark plus word in Montserrat, links to `#/`) at the left edge of the shared `page` container, profile, connection status and Start over at its right edge, nav below at the right edge as text links with icon + text; the active item is underlined with 2px ember.
 - Page band: full-width ink block with a sentence-case Plex h1 (`type-h1`, for example "Clean", "Ask", "Trace") and a one-line lead. No display type and no all-caps inside the app.
 - Card: bone surface, 24px padding, radius 11.52px, directional shadow, no border. Images inside bleed to the card edge with 0 radius.
 - Button: primary = ink fill, parchment text, radius 2.88, min height 44px, 3px ember focus ring with 2px offset; secondary = text link with 1px underline, offset 3; disabled = opacity .45, not-allowed cursor, `aria-disabled`; loading = disabled + spinner icon + visible label change ("Working").
@@ -78,3 +78,10 @@ never the only signal, touch targets at least 44x44 with 8px gaps, no hover-only
 Gradients, glass blur (the one allowed exception is the landing hero headline resolving from soft focus once), shadows other than the card shadow, radius above 12px, sans-serif fonts outside the spec stacks, a second accent
 color, centered long body text, emoji icons, placeholder-only labels, invented numbers (the About tab shows only
 values returned by the API, or "not measured yet").
+
+## Layout container (one system)
+
+Every band's inner content (landing header, section nav, hero, all sections, footer, app header, nav, page banner and views) uses the
+single `page` utility from `src/index.css`: `max-width: 90rem`, centred, 16px gutters (32px from 768px). Full-bleed backgrounds may span
+the viewport, but content never sets its own max-width or gutters. Verified at 375, 768, 1024, 1440 and 1920 that the wordmark, the first
+heading, the last nav item and the last card share the same left and right edges.

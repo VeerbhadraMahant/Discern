@@ -57,7 +57,7 @@ The landing page is the default route (`#/`, an empty hash, or an in-page anchor
 `?mock=1#/clean`. The landing page is code-split (`src/landing/`, loaded with `React.lazy`) and renders every claim from
 `src/landing/facts.ts`, which cites the repository README per item.
 
-Typography follows [../docs/typography.md](../docs/typography.md): Bricolage Grotesque (static instance) for the landing hero,
+Typography follows [../docs/typography.md](../docs/typography.md): Montserrat (static 700) for the landing hero,
 section headings and the wordmark, IBM Plex Sans for everything else, IBM Plex Mono for literal machine output. Fonts are
 self-hosted in `public/fonts` with their licenses in `public/fonts/LICENSES.md`.
 
@@ -77,9 +77,11 @@ Phone (375 px): [clean](screenshots/phone-clean.png), [ask](screenshots/phone-as
 [trace](screenshots/phone-trace.png), [feedback](screenshots/phone-feedback.png),
 [about](screenshots/phone-about.png).
 
-Landing page, desktop: [hero](screenshots/landing-desktop-hero.png), [numbers](screenshots/landing-desktop-numbers.png),
-[results](screenshots/landing-desktop-results.png), [query types](screenshots/landing-desktop-queries.png).
-Landing page, phone: [hero](screenshots/landing-phone-hero.png), [numbers](screenshots/landing-phone-numbers.png).
+Landing page (redesigned), desktop: [hero with the focus-pull figure](screenshots/landing-v2-desktop-hero.png),
+[pipeline contact sheet](screenshots/landing-v2-desktop-pipeline.png), [product mock-up](screenshots/landing-v2-desktop-product.png),
+[results](screenshots/landing-v2-desktop-results.png), [what did not work](screenshots/landing-v2-desktop-honesty.png),
+[methodology](screenshots/landing-v2-desktop-methodology.png).
+Landing page, phone (375 px): [hero](screenshots/landing-v2-phone-hero.png), [methodology](screenshots/landing-v2-phone-methodology.png).
 
 ## Deviations from MASTER.md
 

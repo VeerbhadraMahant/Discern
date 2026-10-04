@@ -13,15 +13,15 @@ function decl(name: string): string {
 
 describe("docs/typography.md tokens", () => {
   it("defines the three font-family tokens with the exact fallback stacks", () => {
-    expect(decl("--font-display")).toBe('"Bricolage Grotesque", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif');
+    expect(decl("--font-display")).toBe('"Montserrat", "Montserrat Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif');
     expect(decl("--font-sans")).toBe('"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif');
     expect(decl("--font-mono")).toBe('"IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace');
   });
 
   it("defines the type scale: size, line height, tracking and weight per token", () => {
     const scale: Record<string, [string, string, string, string]> = {
-      "display-xl": ["clamp(2.5rem, 1.796rem + 3.005vw, 4.5rem)", "1", "-0.01em", "700"],
-      "display-l": ["clamp(2.25rem, 1.986rem + 1.127vw, 3rem)", "1.05", "0", "700"],
+      "display-xl": ["clamp(2.25rem, 1.5rem + 3.6vw, 4.25rem)", "1.05", "-0.02em", "700"],
+      "display-l": ["clamp(2rem, 1.65rem + 1.5vw, 3rem)", "1.1", "0", "700"],
       h1: ["1.5rem", "1.25", "0", "600"],
       h2: ["1.3125rem", "1.3", "0", "600"],
       h3: ["1.125rem", "1.35", "0", "600"],
@@ -53,7 +53,7 @@ describe("docs/typography.md tokens", () => {
 
   it("self-hosts the font files and keeps the landing payload under 100 KB", () => {
     const files = {
-      display: "bricolage-grotesque-82-700-latin.woff2",
+      display: "montserrat-latin-700-normal.woff2",
       sans: "ibm-plex-sans-latin-wdth-normal.woff2",
       mono: "ibm-plex-mono-latin-400-normal.woff2",
     };
@@ -61,6 +61,7 @@ describe("docs/typography.md tokens", () => {
     expect(existsSync(resolve(pub, "LICENSES.md"))).toBe(true);
     const size = (f: string) => statSync(resolve(pub, f)).size;
     expect(size(files.display) + size(files.sans)).toBeLessThan(100 * 1024);
+    expect(existsSync(resolve(pub, "bricolage-grotesque-82-700-latin.woff2"))).toBe(false);
     expect(css).not.toMatch(/fonts\.googleapis|fonts\.gstatic/);
     expect(readFileSync(resolve(__dirname, "../../index.html"), "utf8")).not.toMatch(/fonts\.googleapis|fonts\.gstatic/);
   });
@@ -71,7 +72,7 @@ describe("docs/typography.md tokens", () => {
     const real = faces.filter((f) => /src:\s*url/.test(f));
     expect(real.length).toBe(3);
     for (const f of real) expect(f).toMatch(/font-display:\s*swap/);
-    const fallback = faces.find((f) => /font-family:\s*"Arial Narrow"/.test(f)) ?? "";
+    const fallback = faces.find((f) => /font-family:\s*"Montserrat Fallback"/.test(f)) ?? "";
     expect(fallback).toMatch(/size-adjust/);
     expect(fallback).toMatch(/ascent-override/);
     expect(fallback).toMatch(/descent-override/);

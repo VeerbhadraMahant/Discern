@@ -5,6 +5,7 @@ import { ROUTES } from "../lib/route";
 
 import { useDiscern } from "../state/DiscernContext";
 import { Button, Stamp } from "./ui";
+import { Wordmark } from "./Wordmark";
 
 const NAV: Record<Route, { label: string; icon: ReactNode }> = {
   home: { label: "Home", icon: <House size={20} aria-hidden="true" /> },
@@ -46,26 +47,20 @@ export function Header({ route, sticky = true }: { route: Route; sticky?: boolea
   const { info, session, startOver, isMock } = useDiscern();
   return (
     <header className={`z-20 border-b border-ink bg-parchment ${sticky ? "md:sticky md:top-0" : ""}`}>
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-2 px-4 py-3 md:grid md:grid-cols-[1fr_auto_1fr] md:items-center md:px-8">
-        <div className="order-2 flex items-center justify-between gap-3 md:order-1 md:flex-col md:items-start md:justify-start md:gap-0">
+      <div className="page flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-2">
+        <p>
+          <Wordmark href="#/" />
+        </p>
+        <div className="flex flex-wrap items-center justify-end gap-x-5 gap-y-1">
           {route === "home" ? (
             <p className="type-body-s">Research prototype</p>
           ) : (
             <>
               <p className="type-body-s">{info ? (<>Profile: <span className="type-code ident">{info.profile}</span></>) : "Profile: unknown"}</p>
-              <div className="flex items-center gap-3">
-                <ConnectionStatus />
-                {isMock && <Stamp>Demo data</Stamp>}
-              </div>
+              <ConnectionStatus />
+              {isMock && <Stamp>Demo data</Stamp>}
             </>
           )}
-        </div>
-        <p className="order-1 text-center type-wordmark md:order-2">
-          <a href="#/" className="inline-flex min-h-11 items-center px-2">
-            Discern
-          </a>
-        </p>
-        <div className="order-3 flex justify-end">
           {session && (
             <Button variant="link" onClick={() => void startOver()} icon={<Broom size={20} aria-hidden="true" />}>
               Start over
@@ -73,7 +68,7 @@ export function Header({ route, sticky = true }: { route: Route; sticky?: boolea
           )}
         </div>
       </div>
-      <nav aria-label="Sections" className="mx-auto max-w-[1440px] px-2 md:px-8">
+      <nav aria-label="Sections" className="page">
         <ul className="flex justify-between gap-1 md:justify-end md:gap-6">
           {(["home", ...ROUTES] as const).map((r) => {
             const active = r === route;
@@ -101,7 +96,7 @@ export function Header({ route, sticky = true }: { route: Route; sticky?: boolea
 export function Banner({ title, kicker }: { title: string; kicker: string }) {
   return (
     <section className="bg-ink text-parchment">
-      <div className="mx-auto max-w-[1440px] px-4 py-6 md:px-8">
+      <div className="page py-6">
         <h1 className="type-h1">{title}</h1>
         <p className="measure mt-2 type-body-l">{kicker}</p>
       </div>

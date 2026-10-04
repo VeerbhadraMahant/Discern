@@ -17,20 +17,20 @@
   font-display: swap;
 }
 @font-face {
-  font-family: "Bricolage Grotesque";
-  src: url("/fonts/bricolage-grotesque-82-700-latin.woff2") format("woff2");
+  font-family: "Montserrat";
+  src: url("/fonts/montserrat-latin-700-normal.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
-/* Fallback for the display face: the installed Arial Narrow Bold, scaled to Bricolage's measured metrics so the hero does not shift. */
+/* Metric-matched fallback for the display face: Arial Bold scaled to Montserrat's measured widths and vertical metrics (ascent 968, descent 251 per 1000), so the hero does not shift when the font arrives. */
 @font-face {
-  font-family: "Arial Narrow";
-  src: local("Arial Narrow Bold"), local("ArialNarrow-Bold"), local("Arial-NarrowBold");
+  font-family: "Montserrat Fallback";
+  src: local("Arial Bold"), local("Arial-BoldMT"), local("Helvetica Bold"), local("Liberation Sans Bold");
   font-weight: 700;
-  size-adjust: 88.77%;
-  ascent-override: 104.77%;
-  descent-override: 30.42%;
+  size-adjust: 109.7%;
+  ascent-override: 88.2%;
+  descent-override: 22.9%;
   line-gap-override: 0%;
 }
 
@@ -43,7 +43,7 @@
   --color-ember: #c03f13;
 
   /* docs/typography.md section 2: font tokens and fallback stacks */
-  --font-display: "Bricolage Grotesque", "Arial Narrow", "Roboto Condensed", system-ui, sans-serif;
+  --font-display: "Montserrat", "Montserrat Fallback", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
@@ -53,15 +53,15 @@
   --shadow-card: rgba(29, 29, 27, 0.2) -4px 4px 6px 0;
 
   /* docs/typography.md section 3: type scale (rem; the two display roles are fluid from 375px to 1440px) */
-  --text-display-xl: clamp(2.5rem, 1.796rem + 3.005vw, 4.5rem);
-  --text-display-xl--line-height: 1;
-  --text-display-xl--letter-spacing: -0.01em;
+  --text-display-xl: clamp(2.25rem, 1.5rem + 3.6vw, 4.25rem);
+  --text-display-xl--line-height: 1.05;
+  --text-display-xl--letter-spacing: -0.02em;
   --text-display-xl--font-weight: 700;
-  --text-display-l: clamp(2.25rem, 1.986rem + 1.127vw, 3rem);
-  --text-display-l--line-height: 1.05;
+  --text-display-l: clamp(2rem, 1.65rem + 1.5vw, 3rem);
+  --text-display-l--line-height: 1.1;
   --text-display-l--letter-spacing: 0;
   --text-display-l--font-weight: 700;
-  --text-wordmark: 1.75rem;
+  --text-wordmark: 1.5rem;
   --text-wordmark--line-height: 1.1;
   --text-wordmark--letter-spacing: 0;
   --text-wordmark--font-weight: 700;
@@ -201,6 +201,17 @@
   font-weight: var(--text-code--font-weight);
 }
 
+/* The ONE container: every band's inner content (header, nav, hero, sections, footer, app views) uses it, so left and right edges align at every width. */
+@utility page {
+  width: 100%;
+  max-width: 90rem;
+  margin-inline: auto;
+  padding-inline: 1rem;
+  @media (min-width: 48rem) {
+    padding-inline: 2rem;
+  }
+}
+
 @layer base {
   html {
     background: var(--color-parchment);
@@ -308,7 +319,7 @@
   inset: 0;
   pointer-events: none;
   opacity: 0;
-  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.89 0 0 0 0 0.87 0 0 0 0 0.86 0 0 0 1.4 -0.2'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.114 0 0 0 0 0.114 0 0 0 0 0.106 0 0 0 1.4 -0.2'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -318,4 +329,9 @@
     transition-duration: 0.001ms !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* Illustrated scenes keep a constant stroke width in screen pixels at every size, so small stills stay crisp. */
+.scene * {
+  vector-effect: non-scaling-stroke;
 }

@@ -56,7 +56,7 @@ export function Shell() {
           <Header route={route} />
           <main id="main" ref={main} tabIndex={-1}>
             {badSpace && (
-              <p role="alert" className="mx-auto max-w-[1440px] px-4 py-3 font-semibold md:px-8">
+              <p role="alert" className="page py-3 font-semibold">
                 The space address in the link was ignored: only a hf.space address or a local server is accepted.
               </p>
             )}

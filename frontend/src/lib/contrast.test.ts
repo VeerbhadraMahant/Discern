@@ -20,6 +20,13 @@ const TEXT_PAIRS: Array<[string, string, string]> = [
   ["parchment", "ink", "landing stat band, announcement bar and run-it-locally band"],
   ["ink", "bone", "landing feature cards, code block, chart card and stack chips"],
   ["ink", "parchment", "landing body text, tables, chart values and stamps"],
+  // Redesigned landing: ink bands (contact sheet, results, final call to action) carry parchment text and the results table;
+  // the pull-quote, product, questions, models and FAQ bands sit on bone; panels alternate bone, parchment and ink.
+  ["parchment", "ink", "contact sheet captions, results findings and results table on the ink bands"],
+  ["bone", "ink", "secondary text drawn in bone on an ink band"],
+  ["ink", "bone", "pull-quote, product, questions, models and FAQ bands, and the honesty panel"],
+  ["ink", "parchment", "panels on bone bands (mock-up window, question answer, privacy rules)"],
+  ["parchment", "ink", "ink panels on parchment bands (pillar checked numbers, bento cells)"],
 ];
 
 describe("palette contrast", () => {
@@ -48,5 +55,15 @@ describe("palette contrast", () => {
   it("keeps ember at 3:1 or better for borders, icons and focus rings", () => {
     expect(contrastRatio(token("ember"), token("parchment"))).toBeGreaterThanOrEqual(3);
     expect(contrastRatio(token("ember"), token("ink"))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps the ember evidence mark visible (3:1) on every surface it is drawn on, and never as text", () => {
+    for (const bg of ["parchment", "bone", "ink"]) expect(contrastRatio(token("ember"), token(bg))).toBeGreaterThanOrEqual(3);
+  });
+
+  it("keeps the dividers and hatch strokes (ink and parchment) at 3:1 on the new band surfaces", () => {
+    expect(contrastRatio(token("ink"), token("bone"))).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(token("parchment"), token("ink"))).toBeGreaterThanOrEqual(3);
+    expect(contrastRatio(token("bone"), token("ink"))).toBeGreaterThanOrEqual(3);
   });
 });

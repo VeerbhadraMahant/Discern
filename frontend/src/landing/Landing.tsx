@@ -1,72 +1,74 @@
 import type { RefObject } from "react";
-import { Header } from "../components/Layout";
-import { goToSection, useReadingProgress, useScrollSpy } from "./hooks";
-import { AnnouncementBar, Features, Hero, HowItWorks, StatBand, Strip } from "./sections1";
-import { AskDemo, Honesty, QueryTypes, Results } from "./sections2";
-import { FaqSection, FinalCta, Footer, Models, Privacy, Roadmap, Stack } from "./sections3";
+import { Wordmark } from "../components/Wordmark";
+import { Honesty, Results } from "./bands3";
+import { Bento, Product, Queries } from "./bands2";
+import { ContactSheet, Pillars, PromiseBand } from "./bands1";
+import { FaqSection, FinalCta, Footer, Methodology, PrivacyModels } from "./bands4";
+import { Hero } from "./hero";
+import { goToSection, useScrollSpy } from "./hooks";
+import { APP_HREF, PrimaryLink } from "./kit";
 
-const NAV: ReadonlyArray<readonly [string, string]> = [
-  ["s-features", "Features"],
-  ["s-how", "How it works"],
-  ["s-queries", "Queries"],
-  ["s-example", "Example"],
+export const NAV: ReadonlyArray<readonly [string, string]> = [
+  ["s-pipeline", "Pipeline"],
+  ["s-product", "Product"],
+  ["s-queries", "Questions"],
   ["s-results", "Results"],
   ["s-honesty", "Honesty"],
-  ["s-privacy", "Privacy"],
+  ["s-method", "Methodology"],
   ["s-models", "Models"],
-  ["s-roadmap", "Roadmap"],
   ["s-faq", "FAQ"],
 ];
 const IDS = NAV.map(([id]) => id);
 
-function SectionNav() {
+/** One slim sticky bar: the wordmark at the left edge of the shared container, the section links, the call to action at the right edge. */
+function LandingHeader() {
   const active = useScrollSpy(IDS);
   return (
-    <nav aria-label="On this page" className="sticky top-0 z-20 hidden border-b border-ink bg-parchment lg:block">
-      <ul className="mx-auto flex max-w-[1440px] items-center justify-between gap-2 px-8">
-        {NAV.map(([id, label]) => (
-          <li key={id}>
-            <a
-              href={`#${id}`}
-              aria-current={active === id ? "location" : undefined}
-              onClick={(e) => {
-                e.preventDefault();
-                goToSection(id);
-              }}
-              className={`flex min-h-11 items-center border-b-2 px-1 type-label ${active === id ? "border-ember" : "border-transparent"}`}
-            >
-              {label}
-            </a>
-          </li>
-        ))}
-      </ul>
-    </nav>
+    <header className="sticky top-0 z-30 border-b border-ink bg-parchment">
+      <div className="page flex min-h-14 items-center justify-between gap-4">
+        <Wordmark href="#/" />
+        <nav aria-label="On this page" className="hidden lg:block">
+          <ul className="flex items-center gap-6">
+            {NAV.map(([id, label]) => (
+              <li key={id}>
+                <a
+                  href={`#${id}`}
+                  aria-current={active === id ? "location" : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    goToSection(id);
+                  }}
+                  className={`flex min-h-11 items-center border-b-2 type-label ${active === id ? "border-ember" : "border-transparent"}`}
+                >
+                  {label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <PrimaryLink href={APP_HREF}>Open the app</PrimaryLink>
+      </div>
+    </header>
   );
 }
 
 /** The landing page: everything between the skip link and the toast, including its own main and footer. */
 export default function Landing({ main }: { main: RefObject<HTMLElement | null> }) {
-  const bar = useReadingProgress();
   return (
     <>
-      <div ref={bar} aria-hidden="true" className="fixed inset-x-0 top-0 z-40 h-[3px] origin-left bg-ink" style={{ transform: "scaleX(0)" }} />
-      <AnnouncementBar />
-      <Header route="home" sticky={false} />
-      <SectionNav />
+      <LandingHeader />
       <main id="main" ref={main} tabIndex={-1}>
         <Hero />
-        <Strip />
-        <StatBand />
-        <Features />
-        <HowItWorks />
-        <QueryTypes />
-        <AskDemo />
+        <PromiseBand />
+        <ContactSheet />
+        <Pillars />
+        <Product />
+        <Bento />
+        <Queries />
         <Results />
         <Honesty />
-        <Privacy />
-        <Models />
-        <Stack />
-        <Roadmap />
+        <Methodology />
+        <PrivacyModels />
         <FaqSection />
         <FinalCta />
       </main>

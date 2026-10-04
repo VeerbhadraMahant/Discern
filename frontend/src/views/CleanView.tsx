@@ -98,7 +98,7 @@ export function CleanView() {
   return (
     <>
       <Banner title="Clean" kicker="Upload an image or a video and see how Discern cleans it, step by step." />
-      <div className="mx-auto flex max-w-[1440px] flex-col gap-10 px-4 py-10 md:px-8">
+      <div className="page flex flex-col gap-10 py-10">
         <Card as="section" aria-labelledby="up-h" className="flex flex-col gap-4">
           <h2 id="up-h" className="type-h2">
             Your file

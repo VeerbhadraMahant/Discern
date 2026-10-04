@@ -25,10 +25,10 @@ describe("hash routing", () => {
     expect(screen.getByRole("link", { name: /About/ })).toHaveAttribute("aria-current", "page");
   });
 
-  it("defaults to the landing page and navigates to a tab with the header links", async () => {
+  it("defaults to the landing page and opens the app from the landing call to action, then navigates with the header links", async () => {
     renderApp(<Shell />, { session: null });
     expect(await screen.findByRole("heading", { level: 1, name: /Ask a video a question/ })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("link", { name: /Clean/ }));
+    await userEvent.click(screen.getAllByRole("link", { name: "Open the app" })[0]!);
     expect(await screen.findByRole("heading", { level: 1, name: "Clean" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("link", { name: /Ask/ }));
     expect(await screen.findByRole("heading", { level: 1, name: "Ask" })).toBeInTheDocument();

@@ -12,11 +12,10 @@ export const REPO_URL = "https://github.com/VeerbhadraMahant/Discern";
 export const PAPER_URL = "https://arxiv.org/abs/2605.31174";
 export const PAPER_TITLE = "Detect in Any Scene (DetAS / DetAS-X), arXiv 2605.31174";
 
-export const ANNOUNCEMENT = "Open models only. Work in progress.";
 export const NOT_DEPLOYED = "The hosted Hugging Face Space is not deployed yet.";
 
-/** One plain sentence under the hero, built from the facts below (no meta string with separators). */
-export const DATELINE = "Volume 1. Built on open models and an 8 GB GPU. Work in progress, and not deployed yet.";
+/** The one honest status line under the hero buttons. */
+export const HERO_STATUS = "Open models, an 8 GB GPU, and not deployed yet.";
 
 export type DatasetId = "coco" | "bddClear" | "bddRainy" | "bddNight" | "hazydet" | "darkface";
 
@@ -215,53 +214,122 @@ export interface QueryType {
   id: string;
   name: string;
   question: string;
+  /** Illustrative answer. The page labels it "Example, not a recorded result". */
+  answer: string;
+  /** The kind of evidence this question type points at. */
   evidence: string;
+  /** Example evidence lines, also illustrative. */
+  lines: string[];
   verified: boolean;
 }
 
 export const QUERY_TYPES: readonly QueryType[] = [
-  { id: "locate", name: "Locate", question: "Where does the white van appear?", evidence: "Boxes on frames and a time range per track.", verified: true },
-  { id: "count", name: "Count", question: "How many people cross the road?", evidence: "The tracks that were counted, each with its time range.", verified: true },
-  { id: "temporal", name: "Temporal", question: "What happens right after the bus stops?", evidence: "Time ranges of the events, ordered on the clip timeline.", verified: false },
-  { id: "relation", name: "Relation", question: "Is the cyclist to the left of the truck?", evidence: "Both tracks and the frames where the relation holds.", verified: false },
-  { id: "describe", name: "Describe", question: "What is in the second shot?", evidence: "Detected objects of that shot with crops.", verified: false },
-  { id: "refine", name: "Refine", question: "Only the ones after 0:05.", evidence: "The earlier result set, narrowed, with the rule applied.", verified: false },
-];
-
-export interface Example {
-  id: string;
-  tab: string;
-  question: string;
-  answer: string;
-  evidence: string[];
-  note: string;
-}
-
-/** Illustrative only. The page shows the stamp "Example, not a recorded result" next to these. */
-export const EXAMPLES: readonly Example[] = [
   {
     id: "locate",
-    tab: "Locate",
+    name: "Locate",
     question: "Where does the white van appear?",
     answer: "The white van is visible from 0:03 to 0:07, entering from the right.",
-    evidence: ["Track 2, label van, 0:03 to 0:07", "Status: accepted, with a crop and a rationale"],
-    note: "Locate is verified with real models.",
+    evidence: "Boxes on frames and a time range per track.",
+    lines: ["Track 2, label van, 0:03 to 0:07", "Status: accepted, with a crop and a rationale"],
+    verified: true,
   },
   {
     id: "count",
-    tab: "Count",
+    name: "Count",
     question: "How many people are in the clip?",
-    answer: "Three people were tracked. Counts can run low, so check the tracks listed below.",
-    evidence: ["Track 1, label person, 0:00 to 0:04", "Track 4, label person, 0:02 to 0:08", "Track 5, label person, 0:05 to 0:08"],
-    note: "Count is verified with real models, and in our runs counts were mostly too low.",
+    answer: "Three people were tracked. Counts can run low, so check the tracks listed here.",
+    evidence: "The tracks that were counted, each with its time range.",
+    lines: ["Track 1, label person, 0:00 to 0:04", "Track 4, label person, 0:02 to 0:08", "Track 5, label person, 0:05 to 0:08"],
+    verified: true,
+  },
+  {
+    id: "temporal",
+    name: "Temporal",
+    question: "What happens right after the bus stops?",
+    answer: "The bus stops at 0:06. Right after, one person crosses in front of it.",
+    evidence: "Time ranges of the events, ordered on the clip timeline.",
+    lines: ["Event 1, bus stopped, from 0:06", "Event 2, person crossing, 0:07 to 0:09"],
+    verified: false,
+  },
+  {
+    id: "relation",
+    name: "Relation",
+    question: "Is the cyclist to the left of the truck?",
+    answer: "Yes, from 0:02 to 0:05 the cyclist is to the left of the truck.",
+    evidence: "Both tracks and the frames where the relation holds.",
+    lines: ["Track 3, label cyclist, 0:01 to 0:06", "Track 6, label truck, 0:00 to 0:08", "Relation holds on frames from 0:02 to 0:05"],
+    verified: false,
+  },
+  {
+    id: "describe",
+    name: "Describe",
+    question: "What is in the second shot?",
+    answer: "The second shot shows a street with two cars and a person. This answer is not grounded in a single track.",
+    evidence: "Detected objects of that shot with crops.",
+    lines: ["Shot 2, detected: car, car, person", "Marked: not grounded in detections"],
+    verified: false,
   },
   {
     id: "refine",
-    tab: "Follow-up",
+    name: "Follow-up",
     question: "And only the ones after 0:05?",
     answer: "Two of them, tracks 4 and 5, are present after 0:05.",
-    evidence: ["Reuses the earlier result set, no new detection", "Verifier compares 2 against the narrowed track list"],
-    note: "Follow-up chains were tested with test doubles only.",
+    evidence: "The earlier result set, narrowed, with the rule applied.",
+    lines: ["Reuses the earlier result set, no new detection", "Verifier compares 2 against the narrowed track list"],
+    verified: false,
+  },
+];
+
+/** Locate and count ran with real models; follow-up chains were tested with test doubles only. */
+export const QUERY_NOTE = "Locate and count were run with real models. The other four are implemented and tested with test doubles only.";
+
+export interface SheetFrame {
+  id: "degraded" | "cleaned" | "fused" | "tracked" | "answered";
+  /** Timecode of the still, in the one format: m:ss. */
+  time: string;
+  title: string;
+  caption: string;
+}
+
+/** The contact sheet: one clip walked through the pipeline. The stills are drawn, not recorded. */
+export const SHEET: readonly SheetFrame[] = [
+  { id: "degraded", time: "0:02", title: "Degraded", caption: "A hazy frame comes in. Fog and noise hide the car and the person." },
+  { id: "cleaned", time: "0:03", title: "Cleaned", caption: "A restorer is applied only because this shot needed it. A clear shot would be left alone." },
+  { id: "fused", time: "0:04", title: "Fused", caption: "Three detectors propose boxes; boxes that overlap and look alike are merged into one." },
+  { id: "tracked", time: "0:05", title: "Tracked", caption: "ByteTrack links the box across frames, so the car keeps one identity over time." },
+  { id: "answered", time: "0:06", title: "Answered", caption: "The answer cites the track and its time range, and a verifier checks every number in it." },
+];
+
+export interface Pillar {
+  id: "clean" | "evidence" | "checked";
+  title: string;
+  text: string;
+  /** One measured proof sentence, with the number inside it. */
+  proof: string;
+  source: string;
+}
+
+export const PILLARS: readonly Pillar[] = [
+  {
+    id: "clean",
+    title: "Clean sight",
+    text: "It restores a shot only when restoring helps, and says when it chose not to.",
+    proof: "Always restoring dropped F1 on HazyDet from 0.664 to 0.593, which is why restoration is optional.",
+    source: "README, Findings on the degraded sets",
+  },
+  {
+    id: "evidence",
+    title: "Shown evidence",
+    text: "Every answer points at tracks, crops and timestamps you can open and check.",
+    proof: "Locate and count answers were verified with real models, and each lists the tracks it rests on.",
+    source: "README, Video evaluation",
+  },
+  {
+    id: "checked",
+    title: "Checked numbers",
+    text: "A verifier compares each number in an answer with computed facts before showing it.",
+    proof: "The verifier passed 0.962 of answers on 24 synthetic clips. That checks consistency, not truth.",
+    source: "README, Video evaluation",
   },
 ];
 
@@ -304,28 +372,73 @@ export const STACK = [
   "GitHub Actions CI",
 ] as const;
 
-export type MilestoneStatus = "done" | "limits" | "open";
-
-export interface Milestone {
+export interface Principle {
   id: string;
   title: string;
-  status: MilestoneStatus;
   text: string;
+  /** One short evidence line shown under the principle. */
+  evidence: string;
+  source: string;
 }
 
-export const MILESTONES: readonly Milestone[] = [
-  { id: "M0", title: "Foundations", status: "done", text: "Package, config, trace, fakes, model registry, CI." },
-  { id: "M1", title: "Baselines", status: "done", text: "Five baselines logged on fixed 100-image gate subsets." },
-  { id: "M2", title: "SAIR on images", status: "limits", text: "Avoids harmful restoration but did not beat no-restoration on rainy or DarkFace." },
-  { id: "M3", title: "MED on images", status: "limits", text: "Fusing two detectors is about equal to the best single detector; margins are thin." },
-  { id: "M4", title: "Hosted ZeroGPU Space", status: "open", text: "Not deployed yet. Hosted speed and quota are unmeasured." },
-  { id: "M5", title: "Video ingest and tracking", status: "limits", text: "Works on 24 synthetic clips; the counting tolerance was not met." },
-  { id: "M6", title: "Video index and queries", status: "limits", text: "Locate and count verified with real models; other types on test doubles." },
-  { id: "M7", title: "Follow-ups", status: "limits", text: "Built and tested with test doubles only." },
-  { id: "M8", title: "Video eval set and gate", status: "limits", text: "Gate thresholds set; the self-hosted runner is not registered, so CI runs it by hand." },
-  { id: "M9", title: "SEEH experience", status: "limits", text: "Built and measured; it did not beat plain DetAS." },
-  { id: "M10", title: "Feedback loop", status: "limits", text: "Store, monitoring and promotion logic are tested; the loop was never run on real feedback." },
-  { id: "M11", title: "React frontend", status: "done", text: "This client, with a demo mode that needs no backend." },
+/** The engineering and research method this system is built on. Every statement is backed by the repository. */
+export const METHOD: readonly Principle[] = [
+  {
+    id: "paper",
+    title: "Start from a paper, then measure it",
+    text: "The design follows DetAS and DetAS-X: self-adaptive restoration, multi-expertise detection and experience memory. Each mechanism can be switched off, so it can be ablated, and every deviation from the paper is written down.",
+    evidence: "Ablations: no restoration, always restore, and full restoration; fusion with and without adjudication",
+    source: "discern-plan.md, ablation checklists and decision log",
+  },
+  {
+    id: "measure",
+    title: "Measure before building",
+    text: "The evaluation harness and the baselines came before any clever component: F1 at IoU 0.5 with class-aware greedy matching, each detector alone, the vision-language model zero-shot and the old v0 pipeline. Thresholds are tuned on a separate split, so reported numbers are never tuned on the test images.",
+    evidence: "100-image gate subsets, 50-image tuning splits",
+    source: "README, Measured results; discern-plan.md decision 12",
+  },
+  {
+    id: "code",
+    title: "Code computes, the model judges",
+    text: "Counts, times, boxes and metrics come from deterministic code. The vision-language model only selects, adjudicates and phrases, and a verifier checks every number and timestamp in an answer against the computed facts.",
+    evidence: "Answer verifier pass rate 0.962 on 24 synthetic clips",
+    source: "README, Engineering rules and Video evaluation",
+  },
+  {
+    id: "structured",
+    title: "Every model call is structured",
+    text: "Output is validated against a schema, a malformed reply gets one repair retry and then a deterministic fallback, so it never crashes a request. Prompts are versioned files with golden snapshot tests.",
+    evidence: "Schema check, one repair retry, then a fallback",
+    source: "README, Engineering rules; src/discern/agent/llm_io.py and prompts",
+  },
+  {
+    id: "doubles",
+    title: "Test with doubles first",
+    text: "The logic is covered by 600+ CPU tests that use fake models. Real-model runs then confirm it. Continuous integration runs the linter, the type checker and the tests on every push.",
+    evidence: "600+ CPU tests, lint, type check and tests in CI",
+    source: "README, Run it locally; .github/workflows/ci.yml",
+  },
+  {
+    id: "trace",
+    title: "Trace everything",
+    text: "Every node records its decision, its rationale, its duration and whether it fell back, and the Trace tab in the interface shows them.",
+    evidence: "Decision, rationale, duration and fallback per node",
+    source: "README, Engineering rules; src/discern/trace",
+  },
+  {
+    id: "fail",
+    title: "Report failures",
+    text: "Ablations are published even when they are negative: restoration often lowers F1, experience memory did not help and counts run low. The README and this page say so.",
+    evidence: "See the section on what did not work",
+    source: "README, Findings on the degraded sets and Video evaluation",
+  },
+  {
+    id: "constraints",
+    title: "Constraints as design",
+    text: "Open models only, a budget of zero dollars and an 8 GB GPU, with one codebase and two configuration profiles. Privacy is the default: uploads are deleted on a time limit and kept only with an explicit opt-in.",
+    evidence: "Profiles local_lite and hosted_full",
+    source: "discern-plan.md, goals; README, Run it locally",
+  },
 ];
 
 export interface Faq {
@@ -334,15 +447,9 @@ export interface Faq {
   a: string;
 }
 
-export const RUN_LOCALLY = `git clone ${REPO_URL}.git
-cd Discern
-uv sync --group gpu --group eval
-uv run python space/app.py
-
-# second terminal
-cd frontend
-npm ci
-npm run dev`;
+export const RUN_LOCALLY = `git clone ${REPO_URL}.git && cd Discern
+uv sync --group gpu --group eval && uv run python space/app.py
+cd frontend && npm ci && npm run dev`;
 
 export const FAQ: readonly Faq[] = [
   {
@@ -388,7 +495,7 @@ export const FAQ: readonly Faq[] = [
   {
     id: "run",
     q: "How do I run it locally?",
-    a: "Clone the repository, run uv sync --group gpu --group eval, start the backend with uv run python space/app.py, then in frontend/ run npm ci and npm run dev. The full commands are in the Run it locally block below.",
+    a: "Clone the repository, run uv sync --group gpu --group eval, start the backend with uv run python space/app.py, then in frontend/ run npm ci and npm run dev. The three commands are in the Run it locally block below; run the third in a second terminal.",
   },
   {
     id: "detas",
@@ -441,5 +548,5 @@ export const PRIVACY: ReadonlyArray<{ id: string; title: string; text: string }>
   { id: "ttl", title: "Deleted on a time limit", text: "Sessions expire on a time limit, and Start over deletes yours immediately." },
   { id: "optin", title: "Retention is opt-in", text: "Media is kept for feedback only after you tick an explicit checkbox; it is off by default." },
   { id: "verifier", title: "Answers are checked", text: "Every number and timestamp in an answer is verified against computed facts before display." },
-  { id: "tracking", title: "No analytics scripts", text: "The frontend ships no analytics or tracking code. Fonts load from Google Fonts." },
+  { id: "tracking", title: "No analytics scripts", text: "The frontend ships no analytics or tracking code, and its fonts are served from the same site." },
 ];
