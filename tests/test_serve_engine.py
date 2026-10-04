@@ -567,11 +567,18 @@ def synthetic_memory(version_id: str = "v1") -> Memory:
     return Memory(version=version, stats=stats)
 
 
+def settings_without_policy() -> Settings:
+    """Settings whose policy never has enough samples, so only the experience text is exercised."""
+    t = SETTINGS.thresholds
+    exp = t.experience.model_copy(update={"policy_min_count": 10**6})
+    return SETTINGS.model_copy(update={"thresholds": t.model_copy(update={"experience": exp})})
+
+
 def test_clean_image_injects_experience_into_restorer_and_sr_prompts(
     tmp_path: Path, image_path: Path
 ) -> None:
     vlm = FakeVLM(CLEAN_SCRIPT)
-    engine = make_engine(tmp_path, vlm)
+    engine = make_engine(tmp_path, vlm, settings_without_policy())
     engine.memory = synthetic_memory()
     engine.clean_image(image_path)
     restorer_prompt, sr_prompt = vlm.prompts[1], vlm.prompts[3]
@@ -583,7 +590,9 @@ def test_detect_targets_injects_experience_into_the_detector_prompt(
     tmp_path: Path, image_path: Path
 ) -> None:
     vlm = FakeVLM(CLEAN_SCRIPT + DETECT_SCRIPT)
-    engine = make_engine(tmp_path, vlm, detections=[detection("yolo-world-v2")])
+    engine = make_engine(
+        tmp_path, vlm, settings_without_policy(), detections=[detection("yolo-world-v2")]
+    )
     engine.memory = synthetic_memory()
     engine.detect_targets(engine.clean_image(image_path), ["car"])
     assert "Similar scenes (1): yolo-world-v2+owlv2-base F1 0.70 (n=14)" in vlm.prompts[4]
@@ -594,11 +603,66 @@ def test_prompts_are_unchanged_without_memory(tmp_path: Path, image_path: Path) 
     engine = make_engine(tmp_path / "a", with_none, detections=[detection("yolo-world-v2")])
     engine.detect_targets(engine.clean_image(image_path), ["car"])
     with_memory = FakeVLM(CLEAN_SCRIPT + DETECT_SCRIPT)
-    other = make_engine(tmp_path / "b", with_memory, detections=[detection("yolo-world-v2")])
+    other = make_engine(
+        tmp_path / "b",
+        with_memory,
+        settings_without_policy(),
+        detections=[detection("yolo-world-v2")],
+    )
     other.memory = synthetic_memory()
     other.detect_targets(other.clean_image(image_path), ["car"])
     assert with_none.prompts != with_memory.prompts
     assert not any("Similar scenes" in p for p in with_none.prompts)
+
+
+def policy_memory() -> Memory:
+    """Strong evidence for the fog test profile: dehaze beats none, SR off beats auto."""
+    key = SceneProfile.model_validate_json(profile_json("fog")).key
+
+    def stat(node: Node, option: str, mean: float) -> OptionStat:
+        return OptionStat(
+            profile_key=key, query_type="detect", node=node, option=option, mean=mean, std=0.0,
+            count=50,
+        )
+
+    stats = (
+        stat("restorer", "dehaze", 0.7),
+        stat("restorer", "none", 0.5),
+        stat("sr", "off", 0.7),
+        stat("sr", "auto", 0.5),
+    )
+    version = MemoryVersion(
+        id="v1", created=datetime(2026, 1, 1, tzinfo=UTC), record_count=4, source_hash="h"
+    )
+    return Memory(version=version, stats=stats)
+
+
+ADJUDICATE = '{"candidate": 1, "label": "car", "reject": false, "rationale": "a car"}'
+
+
+def test_strong_experience_decides_cleaning_without_those_vlm_calls(
+    tmp_path: Path, image_path: Path
+) -> None:
+    vlm = FakeVLM([CLEAN_SCRIPT[0], ADJUDICATE])  # perception and one adjudication only
+    engine = make_engine(tmp_path, vlm, detections=[detection("yolo-world-v2")])
+    engine.memory = policy_memory()
+    result = engine.clean_image(image_path)
+    assert result.plan.restorer == "dehaze" and result.plan.use_restored
+    assert result.plan.sr_factor is None
+    assert any(d.startswith("experience policy: sr off") for d in result.plan.decisions)
+    out = engine.detect_targets(result, ["car"])
+    assert len(vlm.prompts) == 2 and len(out.detections) == 1
+    nodes = [e.node for e in result.events + out.events]
+    assert {"experience_policy.restorer", "experience_policy.sr"} <= set(nodes)
+    assert "restorer_select" not in nodes and "image_select" not in nodes
+
+
+def test_without_memory_the_policy_changes_nothing(tmp_path: Path, image_path: Path) -> None:
+    vlm = FakeVLM(CLEAN_SCRIPT)
+    engine = make_engine(tmp_path, vlm)
+    result = engine.clean_image(image_path)
+    assert len(vlm.prompts) == 4 and result.plan.sr_factor == SR_FACTOR
+    assert not any(e.node.startswith("experience_policy") for e in result.events)
 
 
 def test_pinned_memory_is_loaded_through_the_pointer_file(tmp_path: Path) -> None:

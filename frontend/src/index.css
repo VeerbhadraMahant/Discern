@@ -1,0 +1,111 @@
+@import "tailwindcss";
+
+@theme {
+  --color-parchment: #e2dedb;
+  --color-bone: #cdc6be;
+  --color-ink: #1d1d1b;
+  --color-charcoal: #69645f;
+  --color-black: #000000;
+  --color-ember: #c03f13;
+
+  --font-display: "Bodoni Moda", "Didot", "Bodoni 72", Georgia, serif;
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+
+  --radius-tag: 2.88px;
+  --radius-card: 11.52px;
+
+  --shadow-card: rgba(29, 29, 27, 0.2) -4px 4px 6px 0;
+
+  --text-caption: 14px;
+  --text-subhead: 22px;
+  --text-heading-sm: 32px;
+  --text-heading: 65px;
+}
+
+@layer base {
+  html {
+    background: var(--color-parchment);
+    color: var(--color-ink);
+    font-family: var(--font-body);
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    background: var(--color-parchment);
+    font-weight: 400;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    overflow-x: hidden;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 400;
+  }
+  small, .caption {
+    font-weight: 400;
+  }
+  button, input, textarea, select {
+    font: inherit;
+    letter-spacing: inherit;
+  }
+  button:not(:disabled), a, summary, label[for], [role="tab"] {
+    cursor: pointer;
+  }
+  :where(a, button, input, textarea, select, summary, video, [tabindex]):focus-visible {
+    outline: 3px solid var(--color-ember);
+    outline-offset: 2px;
+  }
+  :target, main:focus {
+    outline: none;
+  }
+}
+
+@layer components {
+  .link {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 0;
+    padding: 0 4px;
+    color: inherit;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+  .skeleton {
+    background: var(--color-bone);
+    border-radius: var(--radius-tag);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .rise {
+    animation: rise 200ms ease-out both;
+  }
+  .spin {
+    animation: spin 900ms linear infinite;
+  }
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}

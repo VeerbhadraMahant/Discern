@@ -28,6 +28,7 @@ from discern.agent.schemas import DetectorInfo, SceneProfile, ShotPlan
 from discern.config.settings import ServeThresholds, Settings, load_settings
 from discern.experience.aggregate import Memory, MemoryVersion, load_memory, memory_path
 from discern.experience.injection import render_for
+from discern.experience.policy import ExperiencePolicy, detector_decision, record_decision
 from discern.experience.promotion import read_pointer
 from discern.experience.schema import Node
 from discern.feedback.schema import Feedback, FeedbackStore, StoredFeedback
@@ -344,6 +345,14 @@ class Engine:
     def _plan_experience(self, profile: SceneProfile) -> str:
         return self._experience(profile, "restorer", "sr")
 
+    def _policy(self, profile: SceneProfile) -> ExperiencePolicy | None:
+        """Experience-gated decisions for `profile`; None without memory (the VLM decides)."""
+        if self.memory is None:
+            return None
+        return ExperiencePolicy.from_memory(
+            self.memory, profile, self.settings.thresholds.experience
+        )
+
     # ---- measurement and bookkeeping ---------------------------------------------------------
 
     def record_gpu_ms(self, name: str, ms: float) -> None:
@@ -423,6 +432,12 @@ class Engine:
                 table.pop(sid, None)
         return deleted
 
+    def delete_session(self, session_id: str) -> None:
+        """Delete one session now (files and in-memory state). An unknown id raises `KeyError`."""
+        self.store.delete(session_id)
+        for table in (self._sessions, self._cleans, self._media, self._traces):
+            table.pop(session_id, None)
+
     def _touch(self, session_id: str) -> None:
         try:
             self.store.touch(session_id)
@@ -453,6 +468,7 @@ class Engine:
             self.restorers,
             experience=self._plan_experience,
             settings=self.settings,
+            policy=self._policy,
         )
         cleaned = chosen
         if plan.sr_factor and "super_resolver" in self.settings.profile.models:
@@ -499,6 +515,13 @@ class Engine:
         self, cleaned: Image, targets: list[str], profile: SceneProfile
     ) -> tuple[list[Detection], list[TraceEvent]]:
         trace = TraceCollector()
+        decision = detector_decision(
+            self._policy(profile),
+            self.settings.thresholds.agent.top_k_detectors,
+            [d.name for d in self.catalog if d.name in self.detectors],
+        )
+        if decision is not None:
+            record_decision(trace, decision)
         found = detect_image(
             self._vlm(),
             trace,
@@ -509,6 +532,7 @@ class Engine:
             self.catalog,
             settings=self.settings,
             experience=self._experience(profile, "detector_set"),
+            preferred=None if decision is None else decision.detectors,
         )
         return found, trace.events
 
@@ -539,6 +563,7 @@ class Engine:
             self.restorers,
             experience=self._plan_experience,
             settings=self.settings,
+            policy=self._policy,
         )
         return ingest.info, ingest.shots, ingest.plans, trace.events
 
@@ -555,17 +580,34 @@ class Engine:
         report(0.0, "checking the upload")
         session_id, stored = self.register_upload(video_path)
         try:
-            before = self._gpu_total_ms()
-            report(0.1, "detecting shots and planning cleaning")
-            info, shots, plans, events = self._ingest_gpu(stored)
-            ingest = VideoIngest(stored, info, self.settings, shots, plans, self.restorers)
-            report(0.5, "indexing frames")
-            index, index_events = self._index_gpu(ingest)
-            events = events + index_events + self._gpu_event("ingest", before)
+            return self._ingest_stored(session_id, stored, report)
         except Exception:
             self.store.delete(session_id)
             self._media.pop(session_id, None)
             raise
+
+    def ingest_uploaded(
+        self, session_id: str, progress: ProgressCallback | None = None
+    ) -> VideoSession:
+        """`ingest` for a video already stored by `register_upload`. A failure keeps the session."""
+        report = progress or (lambda fraction, message: None)
+        report(0.0, "checking the upload")
+        self._touch(session_id)
+        stored = self._media.get(session_id)
+        if stored is None:
+            raise EngineError("no video was uploaded for this session")
+        return self._ingest_stored(session_id, stored, report)
+
+    def _ingest_stored(
+        self, session_id: str, stored: Path, report: ProgressCallback
+    ) -> VideoSession:
+        before = self._gpu_total_ms()
+        report(0.1, "detecting shots and planning cleaning")
+        info, shots, plans, events = self._ingest_gpu(stored)
+        ingest = VideoIngest(stored, info, self.settings, shots, plans, self.restorers)
+        report(0.5, "indexing frames")
+        index, index_events = self._index_gpu(ingest)
+        events = events + index_events + self._gpu_event("ingest", before)
         session = VideoSession(session_id, ingest, index)
         self._sessions[session_id] = session
         first = plans[shots[0].id]

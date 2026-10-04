@@ -2,9 +2,18 @@
 
 Handlers hold no state of their own: the browser keeps session ids in `gr.State`, and everything
 else lives in the `Engine`. Errors are shown as messages, never as stack traces.
+
+The same app also serves the React frontend's JSON API (`discern.serve.api`, contract in
+frontend/API.md) under the api names in `API_NAMES`. Launch it with `launch_kwargs(engine)`:
+`allowed_paths` is the session directory, the only place the returned `*_url` files live, and
+`strict_cors=False` (opt in with `DISCERN_ALLOW_ANY_ORIGIN=1`) lets a frontend on another origin
+call the app from the browser; by default Gradio accepts only same-origin and localhost origins.
+On a Hugging Face Space the app listens on 7860 and the Space URL is the Gradio root the client
+connects to; ZeroGPU quota is the calling visitor's when the browser sends their HF token.
 """
 
 import logging
+import os
 from collections.abc import Callable
 from typing import Any
 
@@ -12,6 +21,7 @@ import gradio as gr
 
 from discern.agent.schemas import ShotPlan
 from discern.feedback.schema import Feedback
+from discern.serve.api import DiscernApi
 from discern.serve.engine import (
     TRACE_COLUMNS,
     CleanResult,
@@ -35,6 +45,19 @@ JUMP_JS = (
     " if (v && t !== null) { v.currentTime = Number(t); v.play(); } }"
 )
 USER_ERRORS = (EngineError, ValueError, KeyError, OSError)
+API_NAMES = (
+    "discern_info",
+    "discern_upload",
+    "discern_clean",
+    "discern_detect",
+    "discern_ingest",
+    "discern_ask",
+    "discern_annotated_video",
+    "discern_trace",
+    "discern_feedback",
+    "discern_cleanup",
+)
+ANY_ORIGIN_ENV_VAR = "DISCERN_ALLOW_ANY_ORIGIN"
 
 
 def _guard(n_outputs: int) -> Callable[[Callable[..., tuple[Any, ...]]], Callable[..., Any]]:
@@ -341,7 +364,37 @@ def build_app(engine: Engine) -> gr.Blocks:
         refresh_about.click(on_about, None, [about, monitor])
         timer = gr.Timer(s.cleanup_interval_seconds)
         timer.tick(engine.cleanup)
+        _register_api(DiscernApi(engine))
     return demo
+
+
+def _register_api(api: DiscernApi) -> None:
+    """API-only endpoints for the React frontend. The upload takes a file, so it goes through a
+    hidden File component (which makes the client upload the file first); the rest are typed
+    functions that need no components."""
+    upload_file = gr.File(type="filepath", visible=False)
+    upload_result = gr.JSON(visible=False)
+    gr.Button(visible=False).click(
+        api.upload, upload_file, upload_result, api_name="discern_upload"
+    )
+    gr.api(api.info, api_name="discern_info")
+    gr.api(api.clean, api_name="discern_clean")
+    gr.api(api.detect, api_name="discern_detect")
+    gr.api(api.ingest, api_name="discern_ingest")
+    gr.api(api.ask, api_name="discern_ask")
+    gr.api(api.annotated_video, api_name="discern_annotated_video")
+    gr.api(api.trace, api_name="discern_trace")
+    gr.api(api.feedback, api_name="discern_feedback")
+    gr.api(api.cleanup, api_name="discern_cleanup")
+
+
+def launch_kwargs(engine: Engine) -> dict[str, Any]:
+    """`launch(...)` options for the API: serve files from the session directory only, and accept
+    browser calls from any origin when `DISCERN_ALLOW_ANY_ORIGIN` is set to 1."""
+    return {
+        "allowed_paths": [str(engine.store.root.resolve())],
+        "strict_cors": os.environ.get(ANY_ORIGIN_ENV_VAR) != "1",
+    }
 
 
 def _whoami(profile: gr.OAuthProfile | None) -> str:
@@ -355,7 +408,7 @@ def main() -> None:
     engine = build_engine()
     if on_space():
         engine.warm_up()
-    build_app(engine).queue().launch()
+    build_app(engine).queue().launch(**launch_kwargs(engine))
 
 
 if __name__ == "__main__":
