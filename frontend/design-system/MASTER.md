@@ -12,16 +12,17 @@ Colors (never use raw hex in components, only these tokens):
 - `parchment` #e2dedb page background
 - `bone` #cdc6be card and panel surface, inset areas
 - `ink` #1d1d1b text, borders, icon strokes, banner fills
-- `charcoal` #69645f secondary text. Its contrast on parchment is about 4.6:1, so use it only at 16px or
-  larger, or for captions where ink is not required; verify before shipping.
+- `charcoal` #69645f decorative only. Measured contrast on parchment is 4.38:1 (below the 4.5:1 text minimum),
+  so it is never used for text; secondary text is ink.
 - `black` #000000 emphasis outlines
-- `ember` #c03f13 the ONLY chromatic accent: focus ring, status stamps, active marks
+- `ember` #c03f13 the ONLY chromatic accent: focus ring, nav underline, stamp borders, warning icons. Measured
+  contrast against parchment is 3.96:1 (fine for large UI marks and borders, not for text), so text on or in ember is ink.
 - State is never color alone: success = ink check icon + word, error = ember border + warning icon + message.
 
 Type (Google Fonts, `font-display: swap`; the reference's commercial faces are replaced by its own listed substitutes):
 - Display: "Bodoni Moda" (weight 400-500) for banners and section titles. Negative tracking
   (-0.04em to -0.06em), line-height 0.8-0.95. Display line-height must stay below 1.0.
-- Body and UI: "Source Serif 4" weight 300 (400 for small text for legibility), 16px base,
+- Body and UI: "Source Serif 4" weight 400 (the reference's weight 300 was too light for legibility at 16px), 16px base,
   line-height 1.27-1.5, tracking -0.01em. No sans-serif anywhere.
 - Scale: caption 14, body 16, subheading 22, heading-sm 32, heading 65, heading-lg 122 (banner only, scale down with clamp()).
 - Numbers in tables and timestamps use `font-variant-numeric: tabular-nums`.
@@ -37,7 +38,7 @@ Shadow: only on cards, the directional ink shadow `rgba(29,29,27,.2) -4px 4px 6p
 - Display banner: full-width ink block, parchment display text clamp(64px, 14vw, 200px), line-height .8, one per tab as the section title (for example "CLEAN", "ASK", "TRACE"). The text is also a real heading for screen readers.
 - Card: bone surface, 24px padding, radius 11.52px, directional shadow, no border. Images inside bleed to the card edge with 0 radius.
 - Button: primary = ink fill, parchment text, radius 2.88, min height 44px, 3px ember focus ring with 2px offset; secondary = text link with 1px underline, offset 3; disabled = opacity .45, not-allowed cursor, `aria-disabled`; loading = disabled + spinner icon + visible label change ("Working").
-- Badge (stamp): 2.88px radius, ember fill, parchment text 12-14px, only for result states such as "ungrounded" or "verified".
+- Badge (stamp): 2.88px radius, ember outline, ink text 12-14px (an ember fill with parchment text measures 3.96:1, too low), only for result states such as "ungrounded", "accepted" or "rejected".
 - Inputs: visible label above, bone fill, 1px ink border, radius 2.88, 44px minimum height, helper text below, error text below in ember with a warning icon and `role="alert"`.
 - Drop zone: dashed 1px ink border on bone, large icon, text "Drop an image or video, or choose a file", keyboard-operable (a real `<input type="file">` inside a label), shows allowed types and size limits from the API info.
 - Before/after: two images in a 2-column grid with captions; an optional "Compare" range slider must be keyboard accessible (arrow keys) and labelled.
