@@ -45,6 +45,8 @@ class ExperienceThresholds(_Frozen):
     harvest_samples_per_dataset: int
     confirm_top_configs: int
     similarity_weights: SimilarityWeights
+    policy_min_count: int
+    policy_margin: float
 
 
 class VideoThresholds(_Frozen):

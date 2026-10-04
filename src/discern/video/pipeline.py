@@ -8,7 +8,7 @@ from pathlib import Path
 
 from discern.agent.nodes.adjudicate_track import adjudicate_track
 from discern.agent.nodes.restorer_select import NONE
-from discern.agent.sair import Experience, plan_image
+from discern.agent.sair import Experience, Policy, plan_image
 from discern.agent.schemas import ShotPlan
 from discern.config.settings import Settings, load_settings
 from discern.models.roles import VLM, Detection, Embedder, Image, Restorer
@@ -78,6 +78,7 @@ def ingest_video(
     restorers: Mapping[str, Restorer],
     experience: Experience = "",
     settings: Settings | None = None,
+    policy: Policy = None,
 ) -> VideoIngest:
     """Probe and validate, split into shots, and plan SAIR once per shot on its keyframe.
 
@@ -113,7 +114,9 @@ def ingest_video(
                 if len(keyframes) == len(wanted):
                     break
         plans = {
-            shot.id: plan_image(vlm, trace, keyframes[shot.id], restorers, experience, settings)[0]
+            shot.id: plan_image(
+                vlm, trace, keyframes[shot.id], restorers, experience, settings, policy
+            )[0]
             for shot in shots
         }
         span.decision = f"{len(shots)} shots; restorers: " + ", ".join(

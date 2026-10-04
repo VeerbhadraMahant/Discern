@@ -28,6 +28,7 @@ from discern.config import load_settings
 from discern.eval.datasets import DATA_DIR, load_dataset
 from discern.eval.runner import dataset_targets, load_rgb, score_method
 from discern.eval.types import AnnotatedImage
+from discern.experience.policy import ExperiencePolicy
 from discern.models.loading import load_adapter
 from discern.models.manager import ModelManager, RegistryEntry
 from discern.models.registry import load_registry
@@ -100,10 +101,12 @@ def plan_all(
     restorers: LazyRestorers,
     cache_file: Path,
     experience_for: Callable[[SceneProfile], str] = no_experience,
+    policy_for: Callable[[SceneProfile], ExperiencePolicy | None] | None = None,
 ) -> dict[str, ShotPlan]:
     """SAIR plan per image, cached on disk so an interrupted run resumes. `experience_for` gives
     the experience text for the perceived profile; a run with experience needs its own
-    `cache_file`, because cached plans do not record which experience produced them."""
+    `cache_file`, because cached plans do not record which experience produced them. `policy_for`
+    gives the experience-gated decisions for the perceived profile (None: the VLM decides all)."""
     plans: dict[str, ShotPlan] = {}
     if cache_file.exists():
         raw = json.loads(cache_file.read_text())
@@ -113,7 +116,7 @@ def plan_all(
         if a.image_id in plans:
             continue
         plans[a.image_id], _ = plan_image(
-            get_vlm(), trace, load_rgb(a.path), restorers, experience_for
+            get_vlm(), trace, load_rgb(a.path), restorers, experience_for, policy=policy_for
         )
         if n % 10 == 9:
             _save(cache_file, plans)

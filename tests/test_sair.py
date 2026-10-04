@@ -144,6 +144,28 @@ def test_restorer_select_unmapped_scenes_skip_the_vlm(label: str) -> None:
 
 
 EVIDENCE = "Similar scenes (3): lowlight F1 0.39 (n=100) vs none 0.37 (n=100)"
+SR_EVIDENCE = "Similar scenes (3): off F1 0.76 (n=50) vs auto F1 0.70 (n=50)"
+
+
+def test_sr_select_v2_prompt_matches_golden_snapshot() -> None:
+    rendered = load_prompt("sr_select", 2).render(
+        profile='{"scene_label": "fog"}',
+        width=640,
+        height=480,
+        target=2048,
+        factor=4,
+        experience=SR_EVIDENCE,
+    )
+    assert rendered == (SNAPSHOTS / "sr_select.v2.txt").read_text(encoding="utf-8")
+
+
+def test_sr_select_uses_v2_prompt_only_when_experience_is_given() -> None:
+    img = small_image()
+    plain, informed = FakeVLM(['{"factor": "off"}']), FakeVLM(['{"factor": "off"}'])
+    sr_select(plain, TraceCollector(), img, make_profile(), 2048)
+    sr_select(informed, TraceCollector(), img, make_profile(), 2048, SR_EVIDENCE)
+    assert "Measured evidence" not in plain.prompts[0]
+    assert SR_EVIDENCE in informed.prompts[0] and "primary basis" in informed.prompts[0]
 
 
 def test_image_select_v2_prompt_matches_golden_snapshot() -> None:

@@ -40,8 +40,12 @@ def test_cache_name_separates_arm_detector_dataset_revision_vlm_and_memory() -> 
         detection_cache_name(*base[:5], "v2"),
     }
     assert len(names) == 7
+    assert detection_cache_name("detas_xp", *base[1:]) not in names
     assert "v1" in detection_cache_name(*base) and "a" * 10 in detection_cache_name(*base)
     assert plan_cache_name("darkface", "vlm1", "v1") != plan_cache_name("darkface", "vlm1", "v2")
+    assert plan_cache_name("darkface", "vlm1", "v1") == "plans-darkface-vlm1-v1.json"  # as before
+    xp = plan_cache_name("darkface", "vlm1", "v1", "detas_xp")
+    assert xp != plan_cache_name("darkface", "vlm1", "v1") and "detas_xp" in xp
 
 
 def test_decision_stats_rates_and_accuracy() -> None:
@@ -73,12 +77,27 @@ def test_delta_table_rows_deltas_mean_and_missing() -> None:
         ("d2", "detas_x", "e2e_k2"): 0.48,
         ("d1", "detas", "med_k2"): 0.30,
     }
-    table = delta_table(f1, ["d1", "d2"], ["e2e_k2", "med_k2"])
+    table = delta_table(f1, ["d1", "d2"], ["e2e_k2", "med_k2"], ["detas", "detas_x"])
     assert "| d1 | e2e_k2 | 0.400 | 0.450 | +0.050 |" in table
     assert "| d2 | e2e_k2 | 0.500 | 0.480 | -0.020 |" in table
     assert "| mean | e2e_k2 | 0.450 | 0.465 | +0.015 |" in table
     assert "| d1 | med_k2 | 0.300 | n/a | n/a |" in table
     assert "mean | med_k2" not in table
+
+
+def test_delta_table_has_a_column_and_delta_per_arm_against_detas() -> None:
+    f1 = {
+        ("d1", "detas", "m"): 0.40,
+        ("d1", "detas_x", "m"): 0.45,
+        ("d1", "detas_xp", "m"): 0.50,
+        ("d2", "detas", "m"): 0.50,
+        ("d2", "detas_xp", "m"): 0.44,
+    }
+    table = delta_table(f1, ["d1", "d2"], ["m"])
+    assert "| dataset | metric | DetAS | DetAS-X | delta | DetAS-XP | delta |" in table
+    assert "| d1 | m | 0.400 | 0.450 | +0.050 | 0.500 | +0.100 |" in table
+    assert "| d2 | m | 0.500 | n/a | n/a | 0.440 | -0.060 |" in table
+    assert "| mean | m | 0.450 | 0.450 | +0.050 | 0.470 | +0.020 |" in table
 
 
 def test_detect_all_postprocess_maps_back_and_is_cached(tmp_path: Path) -> None:

@@ -8,7 +8,9 @@ from discern.agent.schemas import ShotPlan
 from discern.models.roles import Detection
 from discern.vision.boxes import clip, scale
 
-ARMS = ("detas", "detas_x")
+ARMS = ("detas", "detas_x", "detas_xp")  # no experience, experience text, experience policy
+ARM_LABELS = {"detas": "DetAS", "detas_x": "DetAS-X", "detas_xp": "DetAS-XP"}
+BASELINE = ARMS[0]
 NO_MEMORY = "none"
 
 
@@ -32,9 +34,13 @@ def detection_cache_name(
     return f"{arm}-{detector}-{dataset}-{revision[:10]}-{vlm_tag}-{memory_version}-sr.json"
 
 
-def plan_cache_name(dataset: str, vlm_tag: str, memory_version: str) -> str:
-    """Plan cache of the experience arm (the no-experience arm reuses the Milestone 2 cache)."""
-    return f"plans-{dataset}-{vlm_tag}-{memory_version}.json"
+def plan_cache_name(
+    dataset: str, vlm_tag: str, memory_version: str, arm: str = "detas_x"
+) -> str:
+    """Plan cache of an experience arm (the no-experience arm reuses the Milestone 2 cache). The
+    experience-text arm keeps its original file name so earlier caches stay valid."""
+    prefix = "plans" if arm == "detas_x" else f"plans-{arm}"
+    return f"{prefix}-{dataset}-{vlm_tag}-{memory_version}.json"
 
 
 def decision_stats(
@@ -60,23 +66,46 @@ def pair_frequency(pairs: Sequence[Sequence[str]]) -> dict[str, int]:
 
 
 def delta_table(
-    f1: Mapping[tuple[str, str, str], float], datasets: Sequence[str], metrics: Sequence[str]
+    f1: Mapping[tuple[str, str, str], float],
+    datasets: Sequence[str],
+    metrics: Sequence[str],
+    arms: Sequence[str] = ARMS,
 ) -> str:
-    """Markdown table of DetAS versus DetAS-X F1 per dataset and metric, with the delta and a mean
-    row per metric. `f1` is keyed by (dataset, arm, metric); missing cells print as n/a."""
-    lines = ["| dataset | metric | DetAS | DetAS-X | delta |", "|---|---|---|---|---|"]
+    """Markdown table of F1 per dataset and metric: the baseline arm (first of `arms`), then each
+    other arm with its delta against the baseline, and a mean row per metric. `f1` is keyed by
+    (dataset, arm, metric); missing cells print as n/a. In the mean row an arm's delta is taken
+    over the datasets where both it and the baseline have a value."""
+    base, others = arms[0], arms[1:]
+    header = [ARM_LABELS[base]] + [c for a in others for c in (ARM_LABELS[a], "delta")]
+    lines = [
+        "| dataset | metric | " + " | ".join(header) + " |",
+        "|" + "---|" * (2 + len(header)),
+    ]
     for metric in metrics:
-        pairs: list[tuple[float, float]] = []
+        paired: dict[str, list[tuple[float, float]]] = {a: [] for a in others}
+        bases: list[float] = []
         for ds in datasets:
-            a, b = f1.get((ds, "detas", metric)), f1.get((ds, "detas_x", metric))
-            if a is None or b is None:
-                lines.append(f"| {ds} | {metric} | {_cell(a)} | {_cell(b)} | n/a |")
-                continue
-            pairs.append((a, b))
-            lines.append(f"| {ds} | {metric} | {a:.3f} | {b:.3f} | {b - a:+.3f} |")
-        if pairs:
-            ma, mb = (sum(p[i] for p in pairs) / len(pairs) for i in (0, 1))
-            lines.append(f"| mean | {metric} | {ma:.3f} | {mb:.3f} | {mb - ma:+.3f} |")
+            a = f1.get((ds, base, metric))
+            cells = [_cell(a)]
+            bases += [] if a is None else [a]
+            for arm in others:
+                b = f1.get((ds, arm, metric))
+                if a is None or b is None:
+                    cells += [_cell(b), "n/a"]
+                    continue
+                paired[arm].append((a, b))
+                cells += [f"{b:.3f}", f"{b - a:+.3f}"]
+            lines.append(f"| {ds} | {metric} | " + " | ".join(cells) + " |")
+        if any(paired.values()):
+            cells = [f"{sum(bases) / len(bases):.3f}"]  # bases is non-empty when any pair exists
+            for arm in others:
+                pairs = paired[arm]
+                if not pairs:
+                    cells += ["n/a", "n/a"]
+                    continue
+                ma, mb = (sum(p[i] for p in pairs) / len(pairs) for i in (0, 1))
+                cells += [f"{mb:.3f}", f"{mb - ma:+.3f}"]
+            lines.append(f"| mean | {metric} | " + " | ".join(cells) + " |")
     return "\n".join(lines)
 
 

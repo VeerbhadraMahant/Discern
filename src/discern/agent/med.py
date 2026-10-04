@@ -25,18 +25,20 @@ def detect_image(
     operating_thresholds: Mapping[str, float] | None = None,
     priority: Sequence[str] = (),
     experience: str = "",
+    preferred: Sequence[str] | None = None,
 ) -> list[Detection]:
     """Multi-expertise detection. With adjudicate False, each group fuses to its anchor.
 
     With adjudicate_all False (a cost control, a deviation from the paper), groups where at
     least two detectors agree on the anchor's label are accepted without a VLM call.
+    `preferred` is a detector set decided by the experience policy; it replaces detector_select.
     """
     settings = settings or load_settings()
     thresholds = operating_thresholds or {}
     default_floor = settings.thresholds.agent.default_operating_threshold
     available = [d for d in catalog if d.name in detectors]
     choice = detector_select(
-        vlm, trace, targets, profile, available, priority, experience, settings
+        vlm, trace, targets, profile, available, priority, experience, settings, preferred
     )
 
     pooled: list[Detection] = []

@@ -21,6 +21,8 @@ def test_paper_values() -> None:
     assert t.experience.top_k_profiles == 3
     assert t.experience.harvest_samples_per_dataset == 50
     assert t.experience.confirm_top_configs == 3
+    assert t.experience.policy_min_count == 10  # design choices, not paper values
+    assert t.experience.policy_margin == 0.02
     w = t.experience.similarity_weights
     assert (w.illumination, w.visibility, w.object_scale, w.object_density) == (1.0, 1.0, 0.5, 0.5)
 

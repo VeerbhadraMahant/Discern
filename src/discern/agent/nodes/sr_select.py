@@ -36,9 +36,10 @@ def sr_select(
         return off
 
     fallback = SRChoice(factor=factor, rationale="fallback: image below target size")
+    # The v2 prompt makes measured experience the primary evidence; without experience v1 is used.
     choice = structured_call(
         vlm,
-        load_prompt("sr_select"),
+        load_prompt("sr_select", 2 if experience.strip() else 1),
         {
             "profile": profile.model_dump_json(),
             "width": width,

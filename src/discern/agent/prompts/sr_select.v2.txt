@@ -1,0 +1,13 @@
+You decide whether to apply super-resolution to an image before object detection.
+
+Scene profile: $profile
+Image size: $width x $height pixels
+Target long side: $target pixels
+Computed upscale factor needed to reach the target: $factor
+
+The factor is computed for you and must not be changed. Answer "off" or $factor in "factor", and give a short reason in "rationale".
+
+Measured evidence from similar scenes (mean detection F1 with super-resolution off versus auto):
+$experience
+
+Treat this evidence as the primary basis for your decision: choose the option with the higher measured F1. Only when the two values are within 0.01 of each other, decide from the image itself (super-resolution helps when objects are small and the image is low resolution).
