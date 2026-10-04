@@ -10,7 +10,7 @@ from discern.agent.nodes.restorer_select import NONE, restorer_select
 from discern.agent.nodes.sr_select import required_factor, sr_select
 from discern.agent.schemas import SceneProfile, ShotPlan
 from discern.config.settings import Settings, load_settings
-from discern.experience.policy import MAPPED, SR_AUTO, ExperiencePolicy, record_decision
+from discern.experience.policy import MAPPED, SR_AUTO, DecisionPolicy, record_decision
 from discern.models.roles import VLM, Image, Restorer
 from discern.trace import TraceCollector
 
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Experience text for the restorer and SR prompts: fixed, or computed from the perceived profile.
 Experience = str | Callable[[SceneProfile], str]
 # Experience-gated decisions: fixed, or computed from the perceived profile (None = no policy).
-Policy = ExperiencePolicy | Callable[[SceneProfile], ExperiencePolicy | None] | None
+Policy = DecisionPolicy | Callable[[SceneProfile], DecisionPolicy | None] | None
 
 
 def plan_image(
@@ -53,7 +53,8 @@ def plan_image(
         if found is None:
             return None
         record_decision(trace, found)
-        decisions.append(found.rationale)
+        if found.rationale not in decisions:  # a joint decision spans nodes with one rationale
+            decisions.append(found.rationale)
         return found.option
 
     restorer_verdict = decided("restorer")

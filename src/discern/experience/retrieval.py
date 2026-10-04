@@ -1,7 +1,7 @@
 """Profile similarity and top-k retrieval with per-node recommendations (system-design 5.7)."""
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Iterable, Sequence
 
 from pydantic import BaseModel, ConfigDict
 
@@ -71,12 +71,20 @@ def retrieve(
 ) -> Retrieval:
     """Top `settings.top_k_profiles` profiles by similarity (zero-similarity ones are dropped)."""
     stats = [s for s in memory.stats if s.query_type == query_type]
-    keys = sorted({s.profile_key for s in stats})
-    scored = [(k, profile_similarity(profile_key, k, settings.similarity_weights)) for k in keys]
-    ranked = sorted((p for p in scored if p[1] > 0), key=lambda p: (-p[1], p[0]))
-    top = tuple(ranked[: settings.top_k_profiles])
+    top = top_profiles({s.profile_key for s in stats}, profile_key, settings)
     chosen = {k for k, _ in top}
     return Retrieval(profiles=top, recommendations=_recommend(stats, chosen))
+
+
+def top_profiles(
+    keys: Iterable[str], profile_key: str, settings: ExperienceThresholds
+) -> tuple[tuple[str, float], ...]:
+    """The `settings.top_k_profiles` keys most similar to `profile_key`, best first; keys with
+    zero similarity (another scene label) are dropped."""
+    weights = settings.similarity_weights
+    scored = [(k, profile_similarity(profile_key, k, weights)) for k in sorted(set(keys))]
+    ranked = sorted((p for p in scored if p[1] > 0), key=lambda p: (-p[1], p[0]))
+    return tuple(ranked[: settings.top_k_profiles])
 
 
 def _recommend(

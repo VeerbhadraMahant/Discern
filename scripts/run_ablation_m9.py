@@ -1,5 +1,6 @@
 """Milestone 9 ablation: DetAS (no experience), DetAS-X (experience text from the pinned memory)
-and DetAS-XP (experience-gated decision policy on top of the text).
+DetAS-XP (node-wise experience-gated decision policy on top of the text) and DetAS-XJ (joint
+configuration policy on top of the text).
 
 All arms run the same pipeline on each degraded dataset and all APPLY the super-resolution their
 plan decides (as the Engine does), so the only difference is the experience:
@@ -24,8 +25,14 @@ on the 50-image harvest split of the same arm; every metric is F1@0.5 (micro) on
   med_k2       the full pipeline with VLM adjudication (adjudicate_all=False) on those images
 Grouping and adjudication crops come from the original (unrestored) frame, as in the harvest.
 
+  detas_xj  as detas_x, plus the JointExperiencePolicy: the best whole configuration (restorer, SR,
+            detector set) from the memory's configuration stats, applied when it beats the default
+            configuration (none, SR off, the first two of POOL) by experience.policy_margin with at
+            least experience.policy_min_count samples. Needs configuration stats in the memory
+            (scripts/add_config_stats.py). Its cache names carry the joint-policy settings.
+
 Usage: uv run python scripts/run_ablation_m9.py [--limit N] [--med-images N]
-           [--memory-version ID] [--arms detas,detas_x,detas_xp] [dataset ...]
+           [--memory-version ID] [--arms detas,detas_x,detas_xp,detas_xj] [dataset ...]
 An arm that is not run is read back from its latest MLflow run (same memory version, gate size and
 med-images), so the final table still shows its deltas.
 Needs the Milestone 2 plan caches and the pinned memory. Logs to the MLflow experiment 'm9-detas-x'.
@@ -91,7 +98,9 @@ from discern.eval.types import AnnotatedImage  # noqa: E402
 from discern.experience.aggregate import Memory, load_memory, memory_path  # noqa: E402
 from discern.experience.injection import render_for  # noqa: E402
 from discern.experience.policy import (  # noqa: E402
+    DecisionPolicy,
     ExperiencePolicy,
+    JointExperiencePolicy,
     detector_decision,
     record_decision,
 )
@@ -106,9 +115,10 @@ from discern.trace import TraceCollector  # noqa: E402
 SR_NAME = "real-esrgan-x4plus"  # registry entry of the super_resolver role
 METRICS = ["e2e_k2", "best_single", "e2e_k2_sub", "med_k2"]
 ExperienceFor = Callable[[SceneProfile], str]
-PolicyFor = Callable[[SceneProfile], ExperiencePolicy | None]
+PolicyFor = Callable[[SceneProfile], DecisionPolicy | None]
 EXPERIMENT = "m9-detas-x"
 POLICY_ARM = "detas_xp"
+JOINT_ARM = "detas_xj"
 
 
 def experience_for(memory: Memory, thresholds: ExperienceThresholds, *nodes: Node) -> ExperienceFor:
@@ -186,6 +196,14 @@ class ArmInputs:
         return rescale_detections(dets, self._get()[a.image_id][1], width, height)
 
 
+def joint_rate(plans: Sequence[ShotPlan]) -> float:
+    """Share of plans where the joint policy decided (its rationale is in plan.decisions)."""
+    decided = sum(
+        any(d.startswith("experience joint policy: ") for d in p.decisions) for p in plans
+    )
+    return decided / max(len(plans), 1)
+
+
 def policy_rates(plans: Sequence[ShotPlan]) -> dict[str, float]:
     """Share of plans where the experience policy decided the restorer and the SR node."""
     n = max(len(plans), 1)
@@ -244,15 +262,25 @@ def main() -> None:
         "detas": no_experience,
         "detas_x": experience_for(memory, exp, "restorer", "sr"),
         POLICY_ARM: experience_for(memory, exp, "restorer", "sr"),
+        JOINT_ARM: experience_for(memory, exp, "restorer", "sr"),
     }
     det_exp: dict[str, ExperienceFor] = {
         "detas": no_experience,
         "detas_x": experience_for(memory, exp, "detector_set"),
         POLICY_ARM: experience_for(memory, exp, "detector_set"),
+        JOINT_ARM: experience_for(memory, exp, "detector_set"),
     }
+    k_detectors = settings.thresholds.agent.top_k_detectors
+    if JOINT_ARM in arms and not memory.config_stats:
+        sys.exit("detas_xj needs configuration stats: run scripts/add_config_stats.py first")
 
     def policy_of(profile: SceneProfile) -> ExperiencePolicy:
         return ExperiencePolicy.from_memory(memory, profile, exp)
+
+    def joint_of(profile: SceneProfile) -> JointExperiencePolicy:
+        # The default pair is the first K of the pool order: the harvest-ranked order needs
+        # detections that depend on these plans.
+        return JointExperiencePolicy.from_memory(memory, profile, exp, POOL, k_detectors)
 
     def no_policy(profile: SceneProfile) -> None:
         return None
@@ -261,10 +289,16 @@ def main() -> None:
         "detas": no_policy,
         "detas_x": no_policy,
         POLICY_ARM: policy_of,
+        JOINT_ARM: joint_of,
     }
     policy_key = f"{version}-pol{exp.policy_min_count}-{exp.policy_margin}"
-    memory_of = {"detas": NO_MEMORY, "detas_x": version, POLICY_ARM: policy_key}
-    k_detectors = settings.thresholds.agent.top_k_detectors
+    joint_key = f"{version}-joint{exp.policy_min_count}-{exp.policy_margin}-{'+'.join(POOL)}"
+    memory_of = {
+        "detas": NO_MEMORY,
+        "detas_x": version,
+        POLICY_ARM: policy_key,
+        JOINT_ARM: joint_key,
+    }
 
     manager = ModelManager(registry, {}, settings.profile.vram_budget_gb, load_adapter, free_gpu)
     restorers = LazyRestorers(manager)
@@ -299,6 +333,10 @@ def main() -> None:
             / "_cache"
             / "m9"
             / plan_cache_name(dataset, tag, memory_of[POLICY_ARM], POLICY_ARM),
+            JOINT_ARM: DATA_DIR
+            / "_cache"
+            / "m9"
+            / plan_cache_name(dataset, tag, memory_of[JOINT_ARM], JOINT_ARM),
         }
         plans = {
             arm: plan_all(
@@ -371,6 +409,9 @@ def main() -> None:
             stats["detector_experience_rate"] = with_experience / len(gate)
             if arm == POLICY_ARM:
                 stats.update(policy_rates(gate_plans))
+                stats["policy_detector_rate"] = by_policy / len(gate)
+            if arm == JOINT_ARM:
+                stats["policy_joint_rate"] = joint_rate(gate_plans)
                 stats["policy_detector_rate"] = by_policy / len(gate)
 
             params: dict[str, str | int] = {

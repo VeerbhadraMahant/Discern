@@ -28,7 +28,12 @@ from discern.agent.schemas import DetectorInfo, SceneProfile, ShotPlan
 from discern.config.settings import ServeThresholds, Settings, load_settings
 from discern.experience.aggregate import Memory, MemoryVersion, load_memory, memory_path
 from discern.experience.injection import render_for
-from discern.experience.policy import ExperiencePolicy, detector_decision, record_decision
+from discern.experience.policy import (
+    DecisionPolicy,
+    build_policy,
+    detector_decision,
+    record_decision,
+)
 from discern.experience.promotion import read_pointer
 from discern.experience.schema import Node
 from discern.feedback.schema import Feedback, FeedbackStore, StoredFeedback
@@ -345,12 +350,19 @@ class Engine:
     def _plan_experience(self, profile: SceneProfile) -> str:
         return self._experience(profile, "restorer", "sr")
 
-    def _policy(self, profile: SceneProfile) -> ExperiencePolicy | None:
-        """Experience-gated decisions for `profile`; None without memory (the VLM decides)."""
-        if self.memory is None:
-            return None
-        return ExperiencePolicy.from_memory(
-            self.memory, profile, self.settings.thresholds.experience
+    def _available_detectors(self) -> list[str]:
+        return [d.name for d in self.catalog if d.name in self.detectors]
+
+    def _policy(self, profile: SceneProfile) -> DecisionPolicy | None:
+        """Experience-gated decisions for `profile` (mode `experience.policy_mode`); None without
+        memory, or without configuration stats in joint mode (the VLM decides)."""
+        thresholds = self.settings.thresholds
+        return build_policy(
+            self.memory,
+            profile,
+            thresholds.experience,
+            self._available_detectors(),  # catalog order: detect_image's ranking without priority
+            thresholds.agent.top_k_detectors,
         )
 
     # ---- measurement and bookkeeping ---------------------------------------------------------
@@ -518,7 +530,7 @@ class Engine:
         decision = detector_decision(
             self._policy(profile),
             self.settings.thresholds.agent.top_k_detectors,
-            [d.name for d in self.catalog if d.name in self.detectors],
+            self._available_detectors(),
         )
         if decision is not None:
             record_decision(trace, decision)

@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict
@@ -47,6 +48,7 @@ class ExperienceThresholds(_Frozen):
     similarity_weights: SimilarityWeights
     policy_min_count: int
     policy_margin: float
+    policy_mode: Literal["node", "joint"]
 
 
 class VideoThresholds(_Frozen):

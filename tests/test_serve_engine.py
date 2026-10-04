@@ -644,7 +644,12 @@ def test_strong_experience_decides_cleaning_without_those_vlm_calls(
     tmp_path: Path, image_path: Path
 ) -> None:
     vlm = FakeVLM([CLEAN_SCRIPT[0], ADJUDICATE])  # perception and one adjudication only
-    engine = make_engine(tmp_path, vlm, detections=[detection("yolo-world-v2")])
+    t = SETTINGS.thresholds  # node-wise mode: the memory holds node stats only
+    node_mode = t.experience.model_copy(update={"policy_mode": "node"})
+    settings = SETTINGS.model_copy(
+        update={"thresholds": t.model_copy(update={"experience": node_mode})}
+    )
+    engine = make_engine(tmp_path, vlm, settings, detections=[detection("yolo-world-v2")])
     engine.memory = policy_memory()
     result = engine.clean_image(image_path)
     assert result.plan.restorer == "dehaze" and result.plan.use_restored

@@ -21,7 +21,8 @@ experience:
     object_scale: 0.5
     object_density: 0.5
   policy_min_count: 10         # design choice, not a paper value: samples per compared option before code decides a node
-  policy_margin: 0.02          # design choice, not a paper value: best mean F1 must beat the runner-up by this much
+  policy_margin: 0.02          # design choice, not a paper value: best mean F1 must beat the runner-up (joint mode: the default configuration) by this much
+  policy_mode: joint           # design choice: node = decide restorer, SR, detectors independently; joint = best whole configuration for the scene
 video:
   min_shot_seconds: 1.0        # shots shorter than this are merged into the previous shot
   cut_threshold: 27.0          # PySceneDetect ContentDetector default

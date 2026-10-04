@@ -25,6 +25,19 @@ class OptionStat(BaseModel):
     count: int
 
 
+class ConfigStat(BaseModel):
+    """Raw per-configuration F1 per (profile key, query type): the object a joint policy ranks."""
+
+    model_config = ConfigDict(frozen=True)
+
+    profile_key: str
+    query_type: str
+    configuration: str  # label "restorer|sr|detector_set", e.g. "lowlight|auto|a+b"
+    mean: float
+    std: float  # population standard deviation
+    count: int
+
+
 class MemoryVersion(BaseModel):
     model_config = ConfigDict(frozen=True)
 
@@ -39,6 +52,8 @@ class Memory(BaseModel):
 
     version: MemoryVersion
     stats: tuple[OptionStat, ...]
+    # Empty in memory files written before configuration stats existed (backward compatible).
+    config_stats: tuple[ConfigStat, ...] = ()
 
 
 def aggregate(records: Iterable[ExperienceRecord]) -> list[OptionStat]:
@@ -66,6 +81,39 @@ def aggregate(records: Iterable[ExperienceRecord]) -> list[OptionStat]:
     return stats
 
 
+def _mean_std(values: list[float]) -> tuple[float, float]:
+    mean = sum(values) / len(values)
+    return mean, math.sqrt(sum((v - mean) ** 2 for v in values) / len(values))
+
+
+def aggregate_configurations(records: Iterable[ExperienceRecord]) -> list[ConfigStat]:
+    """Mean, standard deviation and count of the raw per-configuration F1 (the "configuration"
+    rows, whether cheap-fused or adjudicated) per (profile key, query type, configuration)."""
+    groups: dict[tuple[str, str, str], list[float]] = defaultdict(list)
+    for r in records:
+        if r.node == "configuration":
+            groups[(r.profile_key, r.query_type, r.option)].append(r.metric_value)
+    out: list[ConfigStat] = []
+    for (profile_key, query_type, label), values in sorted(groups.items()):
+        mean, std = _mean_std(values)
+        out.append(
+            ConfigStat(
+                profile_key=profile_key,
+                query_type=query_type,
+                configuration=label,
+                mean=mean,
+                std=std,
+                count=len(values),
+            )
+        )
+    return out
+
+
+def with_configuration_stats(memory: Memory, records: Iterable[ExperienceRecord]) -> Memory:
+    """The same memory version with configuration stats rebuilt from its raw records."""
+    return memory.model_copy(update={"config_stats": tuple(aggregate_configurations(records))})
+
+
 def build_memory(
     records: list[ExperienceRecord], version_id: str, created: datetime | None = None
 ) -> Memory:
@@ -77,7 +125,11 @@ def build_memory(
         record_count=len(records),
         source_hash=digest,
     )
-    return Memory(version=version, stats=tuple(aggregate(records)))
+    return Memory(
+        version=version,
+        stats=tuple(aggregate(records)),
+        config_stats=tuple(aggregate_configurations(records)),
+    )
 
 
 def memory_path(directory: Path, version_id: str) -> Path:

@@ -8,8 +8,13 @@ from discern.agent.schemas import ShotPlan
 from discern.models.roles import Detection
 from discern.vision.boxes import clip, scale
 
-ARMS = ("detas", "detas_x", "detas_xp")  # no experience, experience text, experience policy
-ARM_LABELS = {"detas": "DetAS", "detas_x": "DetAS-X", "detas_xp": "DetAS-XP"}
+ARMS = ("detas", "detas_x", "detas_xp", "detas_xj")  # none, text, node policy, joint policy
+ARM_LABELS = {
+    "detas": "DetAS",
+    "detas_x": "DetAS-X",
+    "detas_xp": "DetAS-XP",
+    "detas_xj": "DetAS-XJ",
+}
 BASELINE = ARMS[0]
 NO_MEMORY = "none"
 
