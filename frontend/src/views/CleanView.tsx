@@ -5,7 +5,8 @@ import { BeforeAfter } from "../components/BeforeAfter";
 import { ProfileList, Timeline } from "../components/Decisions";
 import { DropZone } from "../components/DropZone";
 import { Banner } from "../components/Layout";
-import { Button, Card, ErrorNotice, Field, ProgressBar, Skeleton, inputClass } from "../components/ui";
+import { Button, Card, ErrorNotice, Field, inputClass } from "../components/ui";
+import { CLEAN_STEPS, DETECT_STEPS, WorkingPanel } from "../components/WorkingPanel";
 import { formatBytes, formatRange, formatTime } from "../lib/format";
 import { useDiscern } from "../state/DiscernContext";
 
@@ -33,7 +34,7 @@ function DetectPanel() {
           </Button>
         </div>
       </form>
-      {busy && <Skeleton className="h-48 w-full" />}
+      {busy && <WorkingPanel title="Detecting objects" steps={DETECT_STEPS} />}
       {detect && !busy && (
         <div className="flex flex-col gap-4">
           <img src={detect.annotated_url} alt={`Image with ${detect.detections.length} detection boxes drawn`} className="block w-full bg-ink" />
@@ -105,10 +106,7 @@ export function CleanView() {
           </h2>
           <DropZone limits={info?.limits ?? null} disabled={working || !info} onFile={(f) => void uploadFile(f)} />
           {uploading && (
-            <div className="flex flex-col gap-2" role="status">
-              <p>Uploading and checking the file</p>
-              <ProgressBar value={null} label="Upload in progress" />
-            </div>
+            <WorkingPanel title="Uploading and checking the file" steps={["Sending the file", "Checking type, size and length"]} />
           )}
           {session && !uploading && (
             <p className="font-normal">
@@ -122,10 +120,7 @@ export function CleanView() {
         {session?.kind === "image" && (
           <>
             {phase === "cleaning" && (
-              <Card className="flex flex-col gap-4" role="status">
-                <p>Cleaning the image</p>
-                <Skeleton className="h-56 w-full" />
-              </Card>
+              <WorkingPanel title="Cleaning the image" steps={CLEAN_STEPS} />
             )}
             {clean && phase !== "cleaning" && (
               <Card as="section" aria-labelledby="clean-h" className="flex flex-col gap-6">
@@ -156,13 +151,12 @@ export function CleanView() {
         {session?.kind === "video" && (
           <>
             {ingest && !ingest.done && phase === "ingesting" && (
-              <Card as="section" className="flex flex-col gap-3" aria-label="Video progress">
-                <p role="status" className="num font-semibold">
-                  Step {Math.max(1, ingest.step)}: {ingest.message} ({Math.round(ingest.progress * 100)}%)
-                </p>
-                <ProgressBar value={ingest.progress} label="Video processing progress" />
-                <Skeleton className="h-40 w-full" />
-              </Card>
+              <WorkingPanel
+                title="Processing the video"
+                steps={["Splitting into shots", "Cleaning each shot", "Detecting and tracking", "Building the index"]}
+                message={`Step ${Math.max(1, ingest.step)}: ${ingest.message} (${Math.round(ingest.progress * 100)}%)`}
+                progress={ingest.progress}
+              />
             )}
             {!ingest?.done && phase !== "ingesting" && !uploading && (
               <div>

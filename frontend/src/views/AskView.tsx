@@ -7,7 +7,8 @@ import { Banner } from "../components/Layout";
 import { TrackCard } from "../components/TrackCard";
 import { VideoPlayer } from "../components/VideoPlayer";
 import type { PlayerHandle } from "../components/VideoPlayer";
-import { Button, Card, EmptyState, ErrorNotice, Skeleton, inputClass } from "../components/ui";
+import { Button, Card, EmptyState, ErrorNotice, inputClass } from "../components/ui";
+import { ASK_STEPS, WorkingPanel } from "../components/WorkingPanel";
 import { useDiscern } from "../state/DiscernContext";
 import type { ChatTurn } from "../state/DiscernContext";
 
@@ -155,10 +156,7 @@ export function AskView() {
                 ))}
                 {asking && (
                   <li>
-                    <Card className="flex flex-col gap-2" role="status" aria-label="Discern is answering">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-1/2" />
-                    </Card>
+                    <WorkingPanel title="Discern is answering" steps={ASK_STEPS} />
                   </li>
                 )}
               </ol>

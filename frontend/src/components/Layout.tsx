@@ -69,7 +69,7 @@ export function Header({ route, sticky = true }: { route: Route; sticky?: boolea
         </div>
       </div>
       <nav aria-label="Sections" className="page">
-        <ul className="flex justify-between gap-1 md:justify-end md:gap-6">
+        <ul className="flex justify-between gap-1 md:justify-center md:gap-6">
           {(["home", ...ROUTES] as const).map((r) => {
             const active = r === route;
             return (

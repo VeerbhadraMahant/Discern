@@ -322,6 +322,24 @@
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.114 0 0 0 0 0.114 0 0 0 0 0.106 0 0 0 1.4 -0.2'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
 }
 
+/* Working panel: a viewfinder with a scan line. Static (readable) without motion; the scan only runs when motion is allowed. */
+.viewfinder { position: relative; width: 7rem; height: 5rem; background: var(--color-bone); }
+.vf-corner { position: absolute; width: 14px; height: 14px; border: 0 solid var(--color-ember); }
+.vf-tl { top: 0; left: 0; border-top-width: 3px; border-left-width: 3px; }
+.vf-tr { top: 0; right: 0; border-top-width: 3px; border-right-width: 3px; }
+.vf-bl { bottom: 0; left: 0; border-bottom-width: 3px; border-left-width: 3px; }
+.vf-br { bottom: 0; right: 0; border-bottom-width: 3px; border-right-width: 3px; }
+.vf-scan { position: absolute; left: 6px; right: 6px; top: 6px; height: 2px; background: var(--color-ink); }
+.vf-dot { position: absolute; left: 50%; top: 50%; width: 8px; height: 8px; margin: -4px 0 0 -4px; background: var(--color-ember); border-radius: 50%; }
+.step-dot { width: 8px; height: 8px; margin: 4px; border: 1px solid var(--color-ink); border-radius: 50%; flex: none; }
+.step-active { background: var(--color-ink); }
+@media (prefers-reduced-motion: no-preference) {
+  .vf-scan { animation: scan 1.6s ease-in-out infinite alternate; }
+  .vf-dot { animation: pulse-dot 1.6s ease-in-out infinite; }
+  @keyframes scan { from { transform: translateY(0); } to { transform: translateY(62px); } }
+  @keyframes pulse-dot { 50% { opacity: 0.35; } }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
