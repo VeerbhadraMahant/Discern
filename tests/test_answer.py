@@ -217,3 +217,10 @@ def test_larger_number_words_and_none_are_checked(text: str) -> None:
     assert verify(text, THREE_CARS, TOLERANCE)
     zero = Facts(query_type="count", targets=["car"], count=0)
     assert verify("None were seen.", zero, TOLERANCE) == []
+
+
+@pytest.mark.parametrize("text", ["Both cars are parked.", "A couple of cars.", "A dozen cars."])
+def test_quantity_words_that_name_a_number_are_checked(text: str) -> None:
+    assert verify(text, THREE_CARS, TOLERANCE)
+    two = Facts(query_type="count", targets=["car"], count=2)
+    assert verify("Both cars are parked.", two, TOLERANCE) == []

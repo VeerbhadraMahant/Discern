@@ -5,6 +5,7 @@ from discern.eval.synth_clips import ClipEntry, ClipObject
 from discern.eval.video_smoke import (
     ClipRecord,
     aggregate,
+    combine_metrics,
     count_question,
     fallback_events,
     ground_truth_frames,
@@ -143,3 +144,16 @@ def test_markdown_table() -> None:
     assert lines[0].startswith("| dataset | count_accuracy |")
     assert lines[2].startswith("| d1 | 0.500 | - |")
     assert lines[2].endswith("| 2.000 | - |")
+
+
+def test_combined_metrics_weight_by_measured_clips_and_sum_counts() -> None:
+    per_dataset = {
+        "a": {"clips_ok": 2.0, "clips_failed": 4.0,
+              "count_accuracy": 1.0, "vlm_fallback_events": 1},
+        "b": {"clips_ok": 6.0, "clips_failed": 0.0, "count_accuracy": 0.0, "box_f1": 0.5},
+    }
+    combined = combine_metrics(per_dataset)
+    assert combined["count_accuracy"] == pytest.approx(0.25)  # 2 measured clips against 6
+    assert combined["box_f1"] == 0.5  # only b has it
+    assert combined["clips_ok"] == 8 and combined["clips_failed"] == 4
+    assert combined["vlm_fallback_events"] == 1

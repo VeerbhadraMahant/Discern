@@ -48,7 +48,7 @@ export function Shell() {
       <main id="main" ref={main} tabIndex={-1}>
         {badSpace && (
           <p role="alert" className="mx-auto max-w-[1440px] px-4 py-3 font-semibold md:px-8">
-            The space address in the link is not an http or https URL, so it was ignored.
+            The space address in the link was ignored: only a hf.space address or a local server is accepted.
           </p>
         )}
         {route === "clean" && <CleanView />}

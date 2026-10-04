@@ -25,7 +25,8 @@ _WORDS = {
     )
 }
 _TENS = "thirty forty fifty sixty seventy eighty ninety".split()
-_WORDS |= {w: 10 * i for i, w in enumerate(_TENS, start=3)} | {"hundred": 100, "none": 0}
+_WORDS |= {w: 10 * i for i, w in enumerate(_TENS, start=3)}
+_WORDS |= {"hundred": 100, "none": 0, "both": 2, "couple": 2, "dozen": 12}
 _WORD = re.compile(r"\b(" + "|".join(_WORDS) + r")\b", re.IGNORECASE)
 # a track reference ("track 3", "tracks 1, 2 and 3", "#3") names an id, not a quantity
 _TRACK_REF = re.compile(

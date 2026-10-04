@@ -26,7 +26,7 @@ experience:
 video:
   min_shot_seconds: 1.0        # shots shorter than this are merged into the previous shot
   cut_threshold: 27.0          # PySceneDetect ContentDetector default
-  track_activation_score: 0.15 # ByteTrack high-confidence split: detections at or above this can start a track
+  track_activation_score: 0.15 # ByteTrack high-confidence split; supervision starts a track at this score plus 0.1
   track_lost_seconds: 2.0      # a track survives this long without a matching box
   reid_cosine: 0.8             # embedding cosine at or above which two tracks are one object
   reid_max_gap_seconds: 2.0    # longest time gap bridged by re-identification
@@ -54,8 +54,8 @@ degrade:                       # [severity 0, severity 1]; severity 0 leaves a f
   rain_fall_fraction: 0.08     # per-frame streak fall as a fraction of frame height
   noise_sigma: [0.0, 30.0]     # gaussian, 8-bit levels
   noise_peak: [255.0, 40.0]    # poisson: lower peak is noisier
-# Gate (system-design 10.3). PLACEHOLDERS, deliberately permissive so the gate passes until
-# real numbers exist: to be set from baseline numbers once the GPU gate subset has been run.
+# Gate (system-design 10.3). Thresholds sit just below (above, for maximums) the measured
+# 2026-10-04 baseline of the 24 synthetic clips; the per-key comments give the measured values.
 eval_gate:
   experiment: m8-gate          # MLflow experiment the gate reads (latest finished run)
   tolerance: 0.05              # relative slack on every threshold

@@ -1,6 +1,7 @@
 """Log one combined video-smoke run from the latest per-dataset runs in the gate experiment.
 
-Each metric is the mean of the per-dataset values weighted by the number of clips, so it is an
+Each metric is the mean of the per-dataset values weighted by the clips that were measured
+(`clips_ok`, see `discern.eval.video_smoke.combine_metrics`), so it is an
 approximation of one run over all clips (pooled metrics such as box F1 and the verifier pass rate
 are not recomputed from raw counts). The run is tagged `combined` so nobody mistakes it for a
 single end-to-end run. Usage: uv run python scripts/combine_video_runs.py
@@ -11,9 +12,9 @@ from pathlib import Path
 import mlflow
 
 from discern.config import load_settings
+from discern.eval.video_smoke import combine_metrics
 
 DATASETS = ["bdd100k_clear", "bdd100k_night", "bdd100k_rainy", "bdd100k_clear_fog"]
-SUMMED = {"clips_ok", "clips_failed", "vlm_fallback_events"}
 
 
 def main() -> None:
@@ -21,7 +22,11 @@ def main() -> None:
     experiment = settings.thresholds.eval_gate.experiment
     mlruns = Path(__file__).resolve().parents[1] / "mlruns"
     mlflow.set_tracking_uri(f"sqlite:///{(mlruns / 'mlflow.db').as_posix()}")
-    runs = mlflow.search_runs(experiment_names=[experiment], order_by=["start_time ASC"])
+    runs = mlflow.search_runs(
+        experiment_names=[experiment],
+        filter_string="attributes.status = 'FINISHED'",
+        order_by=["start_time ASC"],
+    )
     mlflow.set_experiment(experiment)
     latest = {}
     for _, row in runs.iterrows():  # later runs overwrite earlier ones per dataset
@@ -32,27 +37,16 @@ def main() -> None:
     if missing:
         raise SystemExit(f"no per-dataset run for: {missing}")
 
-    weights = {d: float(latest[d]["params.n_clips"]) for d in DATASETS}
-    total = sum(weights.values())
-    names = sorted(
-        {
-            c.removeprefix("metrics.")
-            for d in DATASETS
-            for c in latest[d].index
-            if c.startswith("metrics.")
+    per_dataset = {
+        d: {
+            c.removeprefix("metrics."): float(v)
+            for c, v in latest[d].items()
+            if c.startswith("metrics.") and v == v  # drop NaN
         }
-    )
-    metrics: dict[str, float] = {}
-    for name in names:
-        values = {d: latest[d].get(f"metrics.{name}") for d in DATASETS}
-        values = {d: v for d, v in values.items() if v == v and v is not None}  # drop NaN
-        if not values:
-            continue
-        if name in SUMMED:
-            metrics[name] = float(sum(values.values()))
-        else:
-            w = sum(weights[d] for d in values)
-            metrics[name] = float(sum(v * weights[d] for d, v in values.items()) / w)
+        for d in DATASETS
+    }
+    metrics = combine_metrics(per_dataset)
+    total = sum(float(latest[d]["params.n_clips"]) for d in DATASETS)
     with mlflow.start_run(run_name="video-smoke/all"):
         mlflow.log_params(
             {

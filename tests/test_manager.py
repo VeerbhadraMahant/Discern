@@ -1,3 +1,6 @@
+import threading
+import time
+
 import pytest
 
 from discern.models.manager import ModelManager, ModelTooLargeError, RegistryEntry
@@ -91,3 +94,28 @@ def test_evict_unloads_now_and_is_a_noop_when_not_loaded() -> None:
     assert unloads == ["model:det_a"] and mgr.loaded_names == []
     mgr.get("detector")  # loads again after an explicit eviction
     assert loads == ["det_a", "det_a"]
+
+
+def test_concurrent_requests_load_a_model_once() -> None:
+    # The Engine and its manager are shared by concurrent requests (Gradio and the JSON API).
+    started = threading.Barrier(4)
+    loads: list[str] = []
+
+    def slow_loader(e: RegistryEntry) -> object:
+        loads.append(e.name)
+        time.sleep(0.05)
+        return f"model:{e.name}"
+
+    mgr = ModelManager(REGISTRY, ACTIVE, 7.0, slow_loader)
+
+    def request() -> None:
+        started.wait()
+        mgr.get("detector")
+
+    threads = [threading.Thread(target=request) for _ in range(4)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert loads == ["det_a"]
+    assert mgr.loaded_names == ["det_a"]

@@ -542,6 +542,7 @@ class Engine:
             profile,
             self.detectors,
             self.catalog,
+            adjudicate_all=False,  # groups two detectors agree on skip the VLM (as evaluated)
             settings=self.settings,
             experience=self._experience(profile, "detector_set"),
             preferred=None if decision is None else decision.detectors,

@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
         _metrics(args.metrics),
         _metrics(args.baseline),
         settings.thresholds.eval_gate,
-        args.memory_dir / "pinned.json",
+        args.memory_dir / settings.thresholds.serve.memory_pointer,
     )
     for reason in decision.reasons:
         print("  -", reason)

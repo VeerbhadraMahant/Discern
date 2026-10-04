@@ -1,0 +1,8 @@
+{
+  "name": "discern",
+  "private": true,
+  "description": "Marker for Vercel: the app lives in frontend/ (see vercel.json). Python code is not built here.",
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

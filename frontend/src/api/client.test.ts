@@ -114,6 +114,15 @@ describe("media URLs", () => {
     expect(out).toEqual({ crop_url: null, video_url: "https://cdn.example/v.mp4" });
   });
 
+  it("keeps a path prefix of the Gradio server and never leaves it for a protocol-relative value", () => {
+    const out = absolutizeMedia(
+      { video_url: "/gradio_api/file=/tmp/a.mp4", crop_url: "//evil.example/x.png" },
+      "https://host.example/app/",
+    );
+    expect(out.video_url).toBe("https://host.example/app/gradio_api/file=/tmp/a.mp4");
+    expect(out.crop_url).toBe("https://host.example/app/evil.example/x.png");
+  });
+
   it("applies to client calls", async () => {
     const predict = vi.fn(async () => ({ data: [{ ok: true, session_id: "s", original_url: "/gradio_api/file=a.png" }] }));
     const client = new GradioDiscernClient(fake({ predict }), "host", "http://127.0.0.1:7860");

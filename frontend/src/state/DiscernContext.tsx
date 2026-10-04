@@ -124,6 +124,8 @@ export function DiscernProvider({ children, client: injected, config, initialSes
   const [toast, setToast] = useState<string | null>(null);
   const [attempt, setAttempt] = useState(0);
   const turnId = useRef(0);
+  /** Bumped whenever the session is dropped, so replies to calls started earlier are ignored. */
+  const epoch = useRef(0);
   const toastTimer = useRef<number | undefined>(undefined);
 
   // Connect (and reconnect on retry).
@@ -153,6 +155,21 @@ export function DiscernProvider({ children, client: injected, config, initialSes
 
   const addEvents = useCallback((ev: TraceEvent[]) => setEvents((prev) => [...prev, ...ev]), []);
 
+  const resetResults = useCallback(() => {
+    epoch.current += 1;
+    setClean(null);
+    setDetect(null);
+    setIngest(null);
+    setChat([]);
+    setEvents([]);
+  }, []);
+
+  const dropSession = useCallback(() => {
+    resetResults();
+    setSession(null);
+    saveSession(null);
+  }, [resetResults]);
+
   const guard = useCallback(
     async <T,>(p: Phase, fn: () => Promise<T>): Promise<T | undefined> => {
       setPhase(p);
@@ -160,19 +177,22 @@ export function DiscernProvider({ children, client: injected, config, initialSes
       try {
         return await fn();
       } catch (e) {
-        setError(toDiscernError(e));
+        const err = toDiscernError(e);
+        if (err.kind === "expired") dropSession();
+        setError(err);
         return undefined;
       } finally {
         setPhase("idle");
       }
     },
-    [],
+    [dropSession],
   );
 
   const doClean = useCallback(
     async (c: DiscernClient, sid: string) => {
+      const mine = epoch.current;
       const res = await guard("cleaning", () => c.clean(sid));
-      if (res) {
+      if (res && mine === epoch.current) {
         setClean(res);
         addEvents(res.events);
       }
@@ -182,9 +202,11 @@ export function DiscernProvider({ children, client: injected, config, initialSes
 
   const doIngest = useCallback(
     async (c: DiscernClient, sid: string) => {
+      const mine = epoch.current;
       setIngest({ progress: 0, message: "Starting", step: 0, done: null });
       await guard("ingesting", async () => {
         for await (const ev of c.ingest(sid)) {
+          if (mine !== epoch.current) return;
           if (ev.stage === "progress") {
             setIngest((prev) => ({ progress: ev.progress, message: ev.message, step: (prev?.step ?? 0) + 1, done: null }));
           } else {
@@ -197,14 +219,6 @@ export function DiscernProvider({ children, client: injected, config, initialSes
     [guard, addEvents],
   );
 
-  const resetResults = useCallback(() => {
-    setClean(null);
-    setDetect(null);
-    setIngest(null);
-    setChat([]);
-    setEvents([]);
-  }, []);
-
   const uploadFile = useCallback(
     async (file: File) => {
       if (!client) return;
@@ -212,8 +226,13 @@ export function DiscernProvider({ children, client: injected, config, initialSes
       resetResults();
       setSession(null);
       saveSession(null);
+      const mine = epoch.current;
       const res = await guard("uploading", () => client.upload(file));
       if (!res) return;
+      if (mine !== epoch.current) {
+        void client.cleanup(res.session_id).catch(() => undefined); // the visitor started over meanwhile
+        return;
+      }
       const s: Session = { id: res.session_id, kind: res.kind, name: res.name, sizeBytes: res.size_bytes };
       setSession(s);
       saveSession(s);
@@ -234,8 +253,9 @@ export function DiscernProvider({ children, client: injected, config, initialSes
   const runDetect = useCallback(
     async (targets: string) => {
       if (!client || !session) return;
+      const mine = epoch.current;
       const res = await guard("detecting", () => client.detect(session.id, targets));
-      if (res) {
+      if (res && mine === epoch.current) {
         setDetect(res);
         addEvents(res.events);
       }
@@ -246,9 +266,11 @@ export function DiscernProvider({ children, client: injected, config, initialSes
   const ask = useCallback(
     async (question: string): Promise<boolean> => {
       if (!client || !session) return false;
+      const mine = epoch.current;
       const userId = ++turnId.current;
       setChat((prev) => [...prev, { id: userId, role: "user", text: question }]);
       const res = await guard("asking", () => client.ask(session.id, question));
+      if (mine !== epoch.current) return false;
       if (!res) {
         setChat((prev) => prev.filter((t) => t.id !== userId));
         return false;
@@ -262,8 +284,9 @@ export function DiscernProvider({ children, client: injected, config, initialSes
 
   const refreshTrace = useCallback(async () => {
     if (!client || !session) return;
+    const mine = epoch.current;
     const res = await guard("idle", () => client.trace(session.id));
-    if (res) setEvents(res.events);
+    if (res && mine === epoch.current) setEvents(res.events);
   }, [client, session, guard]);
 
   const startOver = useCallback(async () => {

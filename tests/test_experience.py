@@ -19,6 +19,7 @@ from discern.experience.aggregate import (
 from discern.experience.harvest import (
     CachedOutputs,
     Configuration,
+    detector_floors,
     enumerate_configurations,
     harvest_image,
 )
@@ -306,3 +307,10 @@ def test_experience_table_reaches_restorer_prompt_and_empty_memory_is_noop() -> 
     restorer_select(vlm, TraceCollector(), profile())  # DetAS: no experience argument
     assert empty == vlm.prompts[0]
     assert "Similar scenes" not in empty
+
+
+def test_detector_floors_follow_the_tuned_per_detector_floors() -> None:
+    # the adjudicated confirmation must filter detections exactly as the cheap path does
+    assert detector_floors({"a": 0.4, "b": 0.7}, ["a", "b"]) == {"a": 0.4, "b": 0.7}
+    assert detector_floors({"a": 0.4}, ["a", "c"]) == {"a": 0.4, "c": 0.0}
+    assert detector_floors(0.3, ["a", "b"]) == {"a": 0.3, "b": 0.3}

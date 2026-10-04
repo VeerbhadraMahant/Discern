@@ -96,7 +96,12 @@ def main(argv: list[str] | None = None) -> None:
     from discern.eval.metrics import match_image
     from discern.eval.runner import dataset_targets, load_rgb, tune_threshold
     from discern.experience.aggregate import build_memory, write_memory
-    from discern.experience.harvest import Configuration, fused_f1, harvest_image
+    from discern.experience.harvest import (
+        Configuration,
+        detector_floors,
+        fused_f1,
+        harvest_image,
+    )
     from discern.experience.harvest_cache import (
         CACHE_ROOT,
         HARVEST_POOL,
@@ -128,7 +133,13 @@ def main(argv: list[str] | None = None) -> None:
         vlm = load_adapter(registry[args.vlm])
 
     def adjudicated_f1(
-        c: Configuration, image: Any, gt: Any, outs: Any, profile: Any, targets: list[str]
+        c: Configuration,
+        image: Any,
+        gt: Any,
+        outs: Any,
+        profile: Any,
+        targets: list[str],
+        floors: float | dict[str, float],
     ) -> float:
         from discern.agent.med import detect_image
         from discern.agent.schemas import DetectorInfo
@@ -153,7 +164,7 @@ def main(argv: list[str] | None = None) -> None:
             catalog,
             adjudicate_all=False,
             settings=settings,
-            operating_thresholds=dict.fromkeys(c.detectors, args.min_score),  # adjudication path
+            operating_thresholds=detector_floors(floors, c.detectors),  # as the cheap path
             priority=c.detectors,
         )
         return match_image(final, gt).f1
@@ -193,7 +204,7 @@ def main(argv: list[str] | None = None) -> None:
             ) -> float:
                 if not adjudicate:
                     return fused_f1(c, image, gt, outs, grouping, floors)
-                return adjudicated_f1(c, image, gt, outs, profile, targets)
+                return adjudicated_f1(c, image, gt, outs, profile, targets, floors)
 
             records += harvest_image(
                 a.image_id,

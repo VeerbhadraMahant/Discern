@@ -49,6 +49,7 @@ export function AskView() {
   const player = useRef<PlayerHandle>(null);
   const inputId = useId();
   const asking = phase === "asking";
+  const busy = phase !== "idle";
 
   const assistants = chat.filter((t) => t.role === "assistant");
   const withEvidence = assistants.filter((t) => t.response && t.response.evidence.tracks.length > 0);
@@ -63,7 +64,7 @@ export function AskView() {
   const send = async (e?: FormEvent) => {
     e?.preventDefault();
     const q = draft.trim();
-    if (!q || asking || limitReached) return;
+    if (!q || busy || limitReached) return;
     setDraft("");
     const ok = await ask(q);
     if (!ok) setDraft(q);
@@ -191,7 +192,7 @@ export function AskView() {
                 <div>
                   <Button
                     type="submit"
-                    disabled={!draft.trim() || limitReached}
+                    disabled={!draft.trim() || limitReached || busy}
                     loading={asking}
                     loadingLabel="Working"
                     icon={<PaperPlaneRight size={20} aria-hidden="true" />}

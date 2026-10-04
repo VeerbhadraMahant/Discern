@@ -24,7 +24,13 @@ from run_ablations_m3 import POOL, DetMap  # noqa: E402
 from discern.agent.nodes.adjudicate import adjudicate  # noqa: E402
 from discern.config import load_settings  # noqa: E402
 from discern.eval.datasets import DATA_DIR, load_dataset  # noqa: E402
-from discern.eval.runner import dataset_targets, detect_all, load_rgb, tune_threshold  # noqa: E402
+from discern.eval.runner import (  # noqa: E402
+    dataset_targets,
+    detect_all,
+    evaluate,
+    load_rgb,
+    tune_threshold,
+)
 from discern.models.loading import load_adapter  # noqa: E402
 from discern.models.manager import ModelManager  # noqa: E402
 from discern.models.registry import load_registry  # noqa: E402
@@ -63,7 +69,11 @@ def main() -> None:
         nm: tune_threshold({a.image_id: raw[nm][a.image_id] for a in harvest}, harvest)
         for nm in POOL
     }
-    ranked = sorted(POOL, key=lambda nm: -op[nm])[:2]
+    harvest_f1 = {
+        nm: evaluate({a.image_id: raw[nm][a.image_id] for a in harvest}, harvest, op[nm]).f1
+        for nm in POOL
+    }
+    ranked = sorted(POOL, key=lambda nm: -harvest_f1[nm])[:2]  # by harvest F1, as in m3
 
     stats: Counter[str] = Counter()
     trace = TraceCollector()

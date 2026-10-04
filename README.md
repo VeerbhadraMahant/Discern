@@ -18,15 +18,19 @@ nothing here is a claim about the hosted Space, which has not been deployed.
    maps the label to a restorer; the VLM may veto it and compares original and restored frames on
    detection-oriented criteria. Super-resolution is decided in code (target size) and by the VLM.
 2. **Detection (MED).** Open-vocabulary detectors (YOLO-World, OWLv2, Grounding DINO) propose boxes;
-   proposals are grouped per the paper's IoU plus crop-similarity rule; ambiguous groups are
-   adjudicated by the VLM on a numbered crop.
+   proposals are grouped per the paper's IoU plus crop-similarity rule; groups are adjudicated by
+   the VLM on a numbered crop (the evaluation and harvest runs skip the VLM where two detectors agree).
 3. **Video.** Shot detection, one SAIR plan per shot, per-frame fusion, ByteTrack, re-identification,
    per-track adjudication, annotated video export.
 4. **Questions.** A parsed query plan (locate, count, temporal, relation, describe, refine) is
    executed in code; the VLM only phrases the answer, and a verifier checks every number and
    timestamp against the computed facts before it is shown. Follow-ups reuse earlier result sets.
+   Only locate and count were run with real models; the other query types and follow-up chains
+   are tested with fakes only.
 5. **Experience (SEEH).** Harvested per-scene evidence (restorer, super-resolution and detector-set
-   F1) is injected into the decision prompts. Opt-in user feedback can grow the memory.
+   F1) is injected into the decision prompts, or, where it is decisive, applied by code. Opt-in
+   feedback is stored and the promotion logic is unit tested, but turning feedback into new memory
+   versions is not wired (the harvest step of `scripts/feedback_loop.py` is a stub).
 
 Engineering rules: the VLM never invents a quantity, every VLM call is schema-validated with one
 repair retry and a deterministic fallback, every node is traced, no model ID is hardcoded.
@@ -58,9 +62,8 @@ Findings on the degraded sets (OWLv2 as the detector):
   (differences from -0.003 to +0.012). Fusing all three is clearly worse. Full MED with VLM
   adjudication, on the first 12 gate images per dataset, was ahead of the best single detector on
   all four datasets, but by noise-level margins on two of them.
-- Experience (SEEH). Harvesting 50 images per scene gave a memory whose node-level values agree with the
-  detector findings (OWLv2 best; restoration and super-resolution help only on low-light scenes). Using it did
-  not improve results. End-to-end F1 on 40 gate images per dataset, DetAS without experience versus
+- Experience (SEEH). Harvesting 50 images per dataset over 34 configurations (6800 records) gave a
+  memory. Using it did not improve results. End-to-end F1 on 40 gate images per dataset, DetAS without experience versus
   experience applied by code per node versus by best joint configuration:
   HazyDet 0.550 / 0.544 / 0.530, BDD night 0.565 / 0.524 / 0.524, BDD rainy 0.652 / 0.663 / 0.663,
   DarkFace 0.214 / 0.203 / 0.203. Putting the evidence in the prompt changed nothing, because the 4B VLM
@@ -73,9 +76,8 @@ Findings on the degraded sets (OWLv2 as the detector):
 Video, on 24 synthetic 8-second clips built from labelled BDD frames (slow zoom; some fogged
 synthetically), with true object counts taken from the image labels: count exact-match 0.136, mean
 absolute error 2.8, box F1 0.567, answer verifier pass rate 0.962, about 22 GPU-seconds per
-video-second on an RTX 4060. Counts are mostly too low (37 of 51 label counts under the truth),
-small distant objects are the main miss. The GPU cost is far above what a free ZeroGPU quota
-allows for anything but very short clips.
+video-second on an RTX 4060. Counts are mostly too low (37 of 51 label counts under the truth).
+The GPU time was measured on the local RTX 4060; the hosted speed and quota were not measured.
 
 ## Repository layout
 
@@ -84,6 +86,7 @@ allows for anything but very short clips.
   `eval/`, `serve/` (engine and Gradio app), `trace/`, `config/`
 - `configs/` model registry, profiles (`hosted_full`, `local_lite`), thresholds
 - `scripts/` dataset preparation, baselines, ablations, harvest, gate, Space bundle
+- `frontend/` React client for the backend's JSON API (Vercel config in `vercel.json`)
 - `space/` Hugging Face Space entrypoint; `legacy/v0/` the frozen first version (baseline only)
 - `tests/` CPU tests with fakes; GPU tests carry the `gpu` marker
 

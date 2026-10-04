@@ -180,6 +180,28 @@ def aggregate(records: Sequence[ClipRecord]) -> dict[str, float]:
     return metrics
 
 
+SUMMED_METRICS = frozenset({"clips_ok", "clips_failed", "vlm_fallback_events"})
+
+
+def combine_metrics(per_dataset: Mapping[str, Mapping[str, float]]) -> dict[str, float]:
+    """One metric set over several clip sets. Counts are summed; every other metric is the mean
+    of the clip sets that have it, weighted by their `clips_ok` (the clips it was measured on;
+    failed clips are in no metric). Pooled metrics (box F1, verifier pass rate) are only
+    approximated this way."""
+    names = {n for m in per_dataset.values() for n in m}
+    combined: dict[str, float] = {}
+    for name in sorted(names):
+        have = {d: m[name] for d, m in per_dataset.items() if name in m}
+        if name in SUMMED_METRICS:
+            combined[name] = sum(have.values())
+            continue
+        weights = {d: per_dataset[d].get("clips_ok", 0.0) for d in have}
+        total = sum(weights.values())
+        if total > 0:
+            combined[name] = sum(v * weights[d] for d, v in have.items()) / total
+    return combined
+
+
 def markdown_table(by_dataset: Mapping[str, Mapping[str, float]]) -> str:
     """One row per dataset; a metric that was not measured shows as a dash."""
     head = "| dataset | " + " | ".join(METRIC_COLUMNS) + " |"

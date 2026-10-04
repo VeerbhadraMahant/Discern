@@ -1,4 +1,4 @@
-export type DiscernErrorKind = "backend" | "network" | "invalid";
+export type DiscernErrorKind = "backend" | "network" | "invalid" | "expired";
 
 /** Typed error carrying a visitor-friendly message and a retry hint. */
 export class DiscernError extends Error {
@@ -15,7 +15,12 @@ export class DiscernError extends Error {
   }
 }
 
+const EXPIRED_PATTERN = /session (is unknown or )?has expired/i;
+
 export function backendError(message: string): DiscernError {
+  if (EXPIRED_PATTERN.test(message)) {
+    return new DiscernError("expired", "Your session ended and its files were deleted.", false, "Upload your file again to start a new session.");
+  }
   const text = message.trim() || "The Discern app could not complete that request.";
   return new DiscernError("backend", text, true, "Try again. If it keeps failing, start over with a new file.");
 }

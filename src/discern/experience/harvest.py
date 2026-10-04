@@ -82,6 +82,13 @@ def _floor(min_score: float | Mapping[str, float], detector: str) -> float:
     return min_score if isinstance(min_score, float | int) else min_score.get(detector, 0.0)
 
 
+def detector_floors(
+    min_score: float | Mapping[str, float], detectors: Sequence[str]
+) -> dict[str, float]:
+    """Score floor of each of `detectors`, the operating thresholds of the adjudicated path."""
+    return {name: _floor(min_score, name) for name in detectors}
+
+
 def fused_f1(
     config: Configuration,
     image: Image,

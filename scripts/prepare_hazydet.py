@@ -10,6 +10,7 @@ import zipfile
 from pathlib import Path
 
 from huggingface_hub import hf_hub_download
+from PIL import Image
 
 from discern.eval.datasets import DATA_DIR, coco_to_annotated, save_annotations, split_subset
 
@@ -31,14 +32,17 @@ def main() -> None:
                 id_prefix=f"{part}_",
             )
         chosen = split_subset(items, N_GATE, N_HARVEST, SEED)
+        out = []
         for a in chosen:
             part = a.image_id.split("_", 1)[0]
             dst = DATA_DIR / NAME / a.path
             dst.parent.mkdir(parents=True, exist_ok=True)
-            with z.open(f"real_world/{part}/{a.path.name}") as src, dst.open("wb") as out:
-                shutil.copyfileobj(src, out)
-    save_annotations(NAME, chosen)
-    print(f"{NAME}: {len(items)} candidates, {len(chosen)} selected")
+            with z.open(f"real_world/{part}/{a.path.name}") as src, dst.open("wb") as f:
+                shutil.copyfileobj(src, f)
+            with Image.open(dst) as im:  # the COCO json has swapped width and height for some
+                out.append(a.model_copy(update={"width": im.width, "height": im.height}))
+    save_annotations(NAME, out)
+    print(f"{NAME}: {len(items)} candidates, {len(out)} selected")
 
 
 if __name__ == "__main__":

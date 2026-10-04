@@ -149,13 +149,17 @@ def _scan(
     """Accepted tracks for `targets`. With retrieval, scan the best segments first and fall back
     to a full scan when they yield nothing (system-design 5.4)."""
     if use_retrieval:
-        segments = retrieve(
-            services.index,
-            services.embedder,
-            ", ".join(targets),
-            services.settings.thresholds.index.top_segments,
-            services.settings,
-        )
+        with services.trace.span("retrieve") as span:
+            span.input_summary = f"targets={list(targets)}"
+            segments = retrieve(
+                services.index,
+                services.embedder,
+                ", ".join(targets),
+                services.settings.thresholds.index.top_segments,
+                services.settings,
+            )
+            spans = [f"{s.t_start:.1f}s-{s.t_end:.1f}s" for s in segments]
+            span.decision = ", ".join(spans) or "none"
         if segments:
             found = _accepted(services.detect(targets, segments))
             if found:

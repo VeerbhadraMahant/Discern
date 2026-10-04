@@ -83,6 +83,13 @@ def test_locate_reports_tracks_first_last_seen_and_boxes_per_frame() -> None:
     assert len(first.boxes) == 4
 
 
+def test_retrieval_is_traced_with_its_segments() -> None:
+    trace = TraceCollector()
+    run(QueryPlan(query_type="locate", targets=["car"]), SpyProvider({"car": cars()}), trace=trace)
+    (event,) = [e for e in trace.events if e.node == "retrieve"]
+    assert event.decision != "none" and "s-" in event.decision
+
+
 def test_locate_falls_back_to_a_full_scan_when_segments_yield_nothing() -> None:
     provider = SpyProvider({"car": cars()}, empty_on_segments=True)
     trace = TraceCollector()

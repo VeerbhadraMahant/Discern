@@ -3,7 +3,7 @@ export const DEFAULT_URL = "http://127.0.0.1:7860";
 export interface AppConfig {
   url: string;
   mock: boolean;
-  /** Set when ?space= was present but not an http(s) URL. */
+  /** Set when ?space= was present but was not an allowed Space or local URL, so it was ignored. */
   badSpace: string | null;
 }
 
@@ -11,6 +11,24 @@ export function isHttpUrl(value: string): boolean {
   try {
     const u = new URL(value);
     return u.protocol === "http:" || u.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+const LOCAL_HOSTS = ["localhost", "127.0.0.1", "[::1]"];
+
+/**
+ * A link may only point the app at a Hugging Face Space (https, *.hf.space), a local server, or the
+ * build-time URL. Otherwise a crafted `?space=` link would send the visitor's uploads to a third party.
+ */
+export function isTrustedSpace(value: string, envUrl: string): boolean {
+  try {
+    const u = new URL(value);
+    if (u.username || u.password) return false;
+    if (u.origin === new URL(envUrl).origin) return true;
+    if (u.protocol === "http:" && LOCAL_HOSTS.includes(u.hostname)) return true;
+    return u.protocol === "https:" && u.hostname.endsWith(".hf.space") && u.hostname.length > ".hf.space".length;
   } catch {
     return false;
   }
@@ -28,7 +46,7 @@ export function resolveConfig(
   let url = envUrl;
   let badSpace: string | null = null;
   if (space) {
-    if (isHttpUrl(space)) url = space;
+    if (isHttpUrl(space) && isTrustedSpace(space, envUrl)) url = space;
     else badSpace = space;
   }
   const mockParam = params.get("mock");
