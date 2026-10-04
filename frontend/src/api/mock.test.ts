@@ -52,7 +52,7 @@ describe("MockDiscernClient", () => {
     expect(keys(up)).toEqual(["kind", "name", "ok", "session_id", "size_bytes"]);
     expect(up.kind).toBe("image");
     const clean: CleanResponse = await mock.clean(up.session_id);
-    expect(keys(clean)).toEqual(["cleaned_url", "events", "ok", "original_url", "plan", "profile"]);
+    expect(keys(clean)).toEqual(["cleaned_url", "detection_image", "events", "ok", "original_url", "plan", "profile", "view_url"]);
     checkProfile(clean.profile);
     checkPlan(clean.plan);
     checkEvents(clean.events);

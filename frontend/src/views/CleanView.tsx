@@ -127,7 +127,10 @@ export function CleanView() {
                 <h2 id="clean-h" className="type-h2">
                   Before and after
                 </h2>
-                <BeforeAfter beforeUrl={clean.original_url} afterUrl={clean.cleaned_url} beforeAlt="Original image before cleaning" afterAlt="Image after cleaning" />
+                <BeforeAfter beforeUrl={clean.original_url} afterUrl={clean.view_url} beforeAlt="Original image before cleaning" afterAlt="Clear view of the image after cleaning" />
+                <p className="type-body-s">
+                  Detection runs on the {clean.detection_image} image{clean.detection_image === "original" ? ", which scored better for finding objects" : ""}. The clear view is for you to look at.
+                </p>
                 <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <p className="font-semibold">Scene profile</p>

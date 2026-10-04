@@ -189,6 +189,10 @@ class DiscernApi:
                 "ok": True,
                 "original_url": self._url_for(stored),
                 "cleaned_url": self._write_image(session_id, "cleaned", result.cleaned),
+                "view_url": self._write_image(
+                    session_id, "view", result.view if result.view is not None else result.cleaned
+                ),
+                "detection_image": "restored" if plan.use_restored else "original",
                 "profile": {k: profile[k] for k in _PROFILE_FIELDS},
                 "plan": {
                     "restorer": plan.restorer,

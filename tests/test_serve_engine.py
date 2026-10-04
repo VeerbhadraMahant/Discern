@@ -678,3 +678,16 @@ def test_pinned_memory_is_loaded_through_the_pointer_file(tmp_path: Path) -> Non
     write_memory(synthetic_memory("v1"), tmp_path)
     memory = load_pinned_memory(serve)
     assert memory is not None and memory.version.id == "v1"
+
+
+def test_clean_image_makes_a_display_view_for_fog_without_changing_detection_image(
+    tmp_path: Path, image_path: Path
+) -> None:
+    engine = make_engine(tmp_path, FakeVLM(CLEAN_SCRIPT))
+    result = engine.clean_image(image_path)
+    assert result.profile.scene_label == "fog"
+    assert result.view is not None
+    assert result.view.shape == result.cleaned.shape
+    assert int(result.cleaned.mean()) == BASE_LEVEL + BRIGHTEN  # detection image unchanged
+    event = next(e for e in result.events if e.node == "clear_view")
+    assert event.rationale.startswith("display only")

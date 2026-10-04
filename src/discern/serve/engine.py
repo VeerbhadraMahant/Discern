@@ -54,6 +54,7 @@ from discern.video.pipeline import VideoIngest, ingest_video, track_video
 from discern.video.render import render_video
 from discern.video.types import Shot, Track, VideoInfo
 from discern.vision.boxes import Box, scale
+from discern.vision.dehaze import clear_view
 from discern.vision.grouping import group_detections
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,7 @@ class CleanResult:
     profile: SceneProfile
     events: list[TraceEvent]
     session_id: str | None = None
+    view: Image | None = None  # haze-free picture for display (fog only); detection never uses it
 
     def to_original(self, box: Box) -> Box:
         """Map a box found on `cleaned` back into the uploaded image's pixel space."""
@@ -471,7 +473,7 @@ class Engine:
     # ---- image: clean and detect -------------------------------------------------------------
 
     @gpu(duration=_seconds("clean_image"))
-    def _clean_gpu(self, working: Image) -> tuple[ShotPlan, Image, list[TraceEvent]]:
+    def _clean_gpu(self, working: Image) -> tuple[ShotPlan, Image, Image | None, list[TraceEvent]]:
         trace = TraceCollector()
         plan, chosen = plan_image(
             self._vlm(),
@@ -488,7 +490,17 @@ class Engine:
                 span.input_summary = f"{chosen.shape[1]}x{chosen.shape[0]}, x{plan.sr_factor}"
                 cleaned = self.manager.get("super_resolver").upscale(chosen, plan.sr_factor)  # type: ignore[attr-defined]
                 span.decision = f"{cleaned.shape[1]}x{cleaned.shape[0]}"
-        return plan, cleaned, trace.events
+        view = None
+        if profile_from_plan(plan).scene_label == "fog":
+            with trace.span("clear_view") as span:
+                span.input_summary = f"{working.shape[1]}x{working.shape[0]}"
+                view = clear_view(working)
+                if plan.sr_factor and "super_resolver" in self.settings.profile.models:
+                    view = self.manager.get("super_resolver").upscale(view, plan.sr_factor)  # type: ignore[attr-defined]
+                detection_image = "restored" if plan.use_restored else "original"
+                span.decision = "haze removed for display"
+                span.rationale = f"display only; detection uses the {detection_image} image"
+        return plan, cleaned, view, trace.events
 
     def clean_image(self, path: str | Path, session_id: str | None = None) -> CleanResult:
         """Plan SAIR for one image and apply the plan (restoration, then super-resolution when the
@@ -512,10 +524,10 @@ class Engine:
             else np.asarray(PILImage.fromarray(original).resize(wanted), dtype=np.uint8)
         )
         before = self._gpu_total_ms()
-        plan, cleaned, events = self._clean_gpu(working)
+        plan, cleaned, view, events = self._clean_gpu(working)
         events = events + self._gpu_event("clean_image", before)
         result = CleanResult(
-            original, working, cleaned, plan, profile_from_plan(plan), events, session_id
+            original, working, cleaned, plan, profile_from_plan(plan), events, session_id, view
         )
         if session_id is not None:
             self._cleans[session_id] = result
@@ -640,7 +652,9 @@ class Engine:
                 continue
             plan = ingest.plans[wanted[frame.index]]
             after = frame.image
-            if plan.use_restored and plan.restorer != NONE:
+            if profile_from_plan(plan).scene_label == "fog":
+                after = clear_view(frame.image)
+            elif plan.use_restored and plan.restorer != NONE:
                 try:
                     after = self.restorers[plan.restorer].restore(frame.image)
                 except KeyError:

@@ -129,6 +129,8 @@ export class MockDiscernClient implements DiscernClient {
       ok: true,
       original_url: placeholder("Before", true),
       cleaned_url: placeholder("After", false),
+      view_url: placeholder("Clear view", false),
+      detection_image: "original",
       profile: PROFILE,
       plan: PLAN,
       events: this.record(

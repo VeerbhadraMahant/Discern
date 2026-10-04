@@ -65,6 +65,10 @@ export interface CleanResponse {
   ok: true;
   original_url: string;
   cleaned_url: string;
+  /** Haze-free picture for display; the same as cleaned_url when there is no haze. */
+  view_url: string;
+  /** Which image detection runs on. */
+  detection_image: "original" | "restored";
   profile: SceneProfile;
   plan: Plan;
   events: TraceEvent[];

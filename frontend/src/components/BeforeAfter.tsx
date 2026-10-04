@@ -56,7 +56,7 @@ export function BeforeAfter({
           </figure>
           <figure className="flex flex-col gap-2">
             <img src={afterUrl} alt={afterAlt} className="block w-full bg-ink" />
-            <figcaption className="type-body-s">After</figcaption>
+            <figcaption className="type-body-s">Clear view</figcaption>
           </figure>
         </div>
       )}

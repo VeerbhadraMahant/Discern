@@ -14,7 +14,7 @@ success responses have `"ok": true`.
 
 1. `/discern_info` () -> `{ok, profile, limits:{max_upload_mb, max_video_seconds, max_queries, ttl_seconds, max_pixels}, models:[{role, name, license}], measured_gpu_seconds: number|null, memory_version: string|null}`
 2. `/discern_upload` (file) -> `{ok, session_id, kind:"image"|"video", name, size_bytes}`
-3. `/discern_clean` (session_id) -> `{ok, original_url, cleaned_url, profile:{scene_label, illumination, visibility, object_scale, object_density, confidence}, plan:{restorer, use_restored, sr_factor|null, decisions:string[]}, events:TraceEvent[]}`
+3. `/discern_clean` (session_id) -> `{ok, original_url, cleaned_url, view_url (haze-free display picture, equal to cleaned_url when there is no haze), detection_image:"original"|"restored", profile:{scene_label, illumination, visibility, object_scale, object_density, confidence}, plan:{restorer, use_restored, sr_factor|null, decisions:string[]}, events:TraceEvent[]}`
 4. `/discern_detect` (session_id, targets: string such as "car, person") -> `{ok, annotated_url, detections:[{label, score, box:[x1,y1,x2,y2], detector}], events}`
 5. `/discern_ingest` (session_id), a generator: yields `{ok:true, stage:"progress", progress:0..1, message}` and then a final `{ok:true, stage:"done", duration, fps, width, height, shots:[{id, t_start, t_end, profile, plan, before_url, after_url}], video_url, events}`
 6. `/discern_ask` (session_id, question) -> `{ok, answer, grounded: boolean, clarification: boolean, result_set_id|null, evidence:{tracks:[{id, label, t_start, t_end, n_frames, mean_score, status:"accepted"|"rejected", rationale, crop_url|null}], summary:string}, events}`
