@@ -58,6 +58,15 @@ Findings on the degraded sets (OWLv2 as the detector):
   (differences from -0.003 to +0.012). Fusing all three is clearly worse. Full MED with VLM
   adjudication, on the first 12 gate images per dataset, was ahead of the best single detector on
   all four datasets, but by noise-level margins on two of them.
+- Experience (SEEH). Harvesting 50 images per scene gave a memory whose node-level values agree with the
+  detector findings (OWLv2 best; restoration and super-resolution help only on low-light scenes). Using it did
+  not improve results. End-to-end F1 on 40 gate images per dataset, DetAS without experience versus
+  experience applied by code per node versus by best joint configuration:
+  HazyDet 0.550 / 0.544 / 0.530, BDD night 0.565 / 0.524 / 0.524, BDD rainy 0.652 / 0.663 / 0.663,
+  DarkFace 0.214 / 0.203 / 0.203. Putting the evidence in the prompt changed nothing, because the 4B VLM
+  ignored it (it chose super-resolution on 16 of 16 test images whichever way the evidence pointed). The
+  harvest statistics (per-image F1 on 50 images, cheap fusion) do not predict end-to-end behaviour well
+  enough to beat the defaults.
 - The adjudicating VLM kept 42 of 50 false groups (and all 9 real ones) in a diagnostic on BDD night,
   so it discriminates poorly; most of its value is cost-free fusion, not judgement.
 
